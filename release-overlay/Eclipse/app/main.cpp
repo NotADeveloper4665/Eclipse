@@ -941,11 +941,6 @@ int main(int argc, char *argv[])
                                               [](QQmlEngine* qmlEngine, QJSEngine*) -> QObject* {
                                                   return new ComputerManager(StreamingPreferences::get(qmlEngine));
                                               });
-    qmlRegisterSingletonType<TailscaleDeviceModel>("TailscaleDeviceModel", 1, 0,
-                                                    "TailscaleDeviceModel",
-                                                    [](QQmlEngine*, QJSEngine*) -> QObject* {
-                                                        return new TailscaleDeviceModel();
-                                                    });
     qmlRegisterSingletonType<AutoUpdateChecker>("AutoUpdateChecker", 1, 0,
                                                 "AutoUpdateChecker",
                                                 [](QQmlEngine*, QJSEngine*) -> QObject* {
@@ -1040,6 +1035,11 @@ int main(int argc, char *argv[])
     }
 
     if (hasGUI) {
+        // Expose the list model as a context object instead of a QML singleton.
+        // Qt 5.15 on some Fedora systems crashes in QQmlType compilation when
+        // a singleton QAbstractListModel is also used as a ListView model.
+        engine.rootContext()->setContextProperty("TailscaleDeviceModel",
+                                                 new TailscaleDeviceModel(&engine));
         engine.rootContext()->setContextProperty("initialView", initialView);
         engine.rootContext()->setContextProperty("runConfigChecks", commandLineParserResult == GlobalCommandLineParser::NormalStartRequested);
 
