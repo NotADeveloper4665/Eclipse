@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 10593)
-Total output lines: 1083
-
 #include <QGuiApplication>
 #include <QStyleHints>
 #include <QQmlApplicationEngine>
@@ -559,7 +556,147 @@ int main(int argc, char *argv[])
             }
             else if (!qEnvironmentVariableIsSet("QT_QPA_EGLFS_KMS_CONFIG")) {
                 // HACK: Remove this when Qt is fixed to properly check for display support before picking a card
-                QString cardO…1593 tokens truncated… the default behavior of changing the timer resolution to 1 ms.
+                QString cardOverride = WMUtils::getDrmCardOverride();
+                if (!cardOverride.isEmpty()) {
+                    if (eglfsConfigFile.open()) {
+                        qInfo() << "Overriding default Qt EGLFS card selection to" << cardOverride;
+                        QTextStream(&eglfsConfigFile) << "{ \"device\": \"" << cardOverride << "\" }";
+                        qputenv("QT_QPA_EGLFS_KMS_CONFIG", eglfsConfigFile.fileName().toUtf8());
+                        eglfsConfigFile.close();
+                    }
+                }
+            }
+        }
+
+        // EGLFS uses OpenGLES 2.0, so we will too. Some embedded platforms may not
+        // even have working OpenGL implementations, so GLES is the only option.
+        // See https://github.com/moonlight-stream/moonlight-qt/issues/868
+        SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengles2");
+#endif
+    }
+
+    bool forceGles;
+    if (!Utils::getEnvironmentVariableOverride("FORCE_QT_GLES", &forceGles)) {
+        forceGles = WMUtils::isRunningNvidiaProprietaryDriverX11() ||
+                    !WMUtils::supportsDesktopGLWithEGL();
+    }
+    if (forceGles) {
+        // The Nvidia proprietary driver causes Qt to render a black window when using
+        // the default Desktop GL profile with EGL. AS a workaround, we default to
+        // OpenGL ES when running on Nvidia on X11.
+        // https://qt-project.atlassian.net/browse/QTBUG-106065
+        QSurfaceFormat fmt;
+        fmt.setRenderableType(QSurfaceFormat::OpenGLES);
+        QSurfaceFormat::setDefaultFormat(fmt);
+    }
+
+    // Some ARM and RISC-V embedded devices don't have working GLX which can cause
+    // SDL to fail to find a working OpenGL implementation at all. Let's force EGL
+    // on all platforms for both SDL and Qt. This also avoids GLX-EGL interop issues
+    // when trying to use EGL on the main thread after Qt uses GLX.
+    SDL_SetHint(SDL_HINT_VIDEO_X11_FORCE_EGL, "1");
+    qputenv("QT_XCB_GL_INTEGRATION", "xcb_egl");
+
+#ifdef Q_OS_WIN32
+    // Let us see the true VBlank rather than DWM's approximation. We do this here
+    // because this API must be called before the first swapchain (which Qt will
+    // create when the window is displayed). This is supported on Win11 22H2+.
+    auto fnDXGIDisableVBlankVirtualization =
+        (decltype(DXGIDisableVBlankVirtualization)*)GetProcAddress(GetModuleHandleW(L"dxgi.dll"),
+                                                                   "DXGIDisableVBlankVirtualization");
+    if (fnDXGIDisableVBlankVirtualization) {
+        fnDXGIDisableVBlankVirtualization();
+    }
+#endif
+
+#ifdef Q_OS_MACOS
+    // This avoids using the default keychain for SSL, which may cause
+    // password prompts on macOS.
+    qputenv("QT_SSL_USE_TEMPORARY_KEYCHAIN", "1");
+#endif
+
+#if defined(Q_OS_WIN32) && QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    if (!qEnvironmentVariableIsSet("QT_OPENGL")) {
+        // On Windows, use ANGLE so we don't have to load OpenGL
+        // user-mode drivers into our app. OGL drivers (especially Intel)
+        // seem to crash Moonlight far more often than DirectX.
+        qputenv("QT_OPENGL", "angle");
+    }
+#endif
+
+#if !defined(Q_OS_WIN32) || QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    // Moonlight requires the non-threaded renderer because we depend
+    // on being able to control the render thread by blocking in the
+    // main thread (and pumping events from the main thread when needed).
+    // That doesn't work with the threaded renderer which causes all
+    // sorts of odd behavior depending on the platform.
+    //
+    // NB: Windows defaults to the "windows" non-threaded render loop on
+    // Qt 5 and the threaded render loop on Qt 6.
+    qputenv("QSG_RENDER_LOOP", "basic");
+#endif
+
+#if defined(Q_OS_DARWIN) && defined(QT_DEBUG) && !defined(HAVE_LIBPLACEBO_VULKAN)
+    // Enable Metal valiation for debug builds without libplacebo
+    //
+    // The current MoltenVK driver as of Vulkan SDK 1.4.350 triggers Metal debug layer
+    // violations on frame and overlay uploads like:
+    // _validateReplaceRegion:252: failed assertion `Replace Region Validation
+    // bytesPerRow(4803) must be a multiple of MTLPixelFormatBGRA8Unorm pixel bytes(4).
+    qputenv("MTL_DEBUG_LAYER", "1");
+    qputenv("MTL_SHADER_VALIDATION", "1");
+#endif
+
+    // We don't want system proxies to apply to us
+    QNetworkProxyFactory::setUseSystemConfiguration(false);
+
+    // Clear any default application proxy
+    QNetworkProxy noProxy(QNetworkProxy::NoProxy);
+    QNetworkProxy::setApplicationProxy(noProxy);
+
+    // Register custom metatypes for use in signals
+    qRegisterMetaType<NvApp>("NvApp");
+
+    // Allow the display to sleep by default. We will manually use SDL_DisableScreenSaver()
+    // and SDL_EnableScreenSaver() when appropriate. This hint must be set before
+    // initializing the SDL video subsystem to have any effect.
+    SDL_SetHint(SDL_HINT_VIDEO_ALLOW_SCREENSAVER, "1");
+
+    // We use MMAL to render on Raspberry Pi, so we do not require DRM master.
+    SDL_SetHint(SDL_HINT_KMSDRM_REQUIRE_DRM_MASTER, "0");
+
+    // Use Direct3D 9Ex to avoid a deadlock caused by the D3D device being reset when
+    // the user triggers a UAC prompt. This option controls the software/SDL renderer.
+    // The DXVA2 renderer uses Direct3D 9Ex itself directly.
+    SDL_SetHint(SDL_HINT_WINDOWS_USE_D3D9EX, "1");
+
+    if (SDL_InitSubSystem(SDL_INIT_TIMER) != 0) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+                     "SDL_InitSubSystem(SDL_INIT_TIMER) failed: %s",
+                     SDL_GetError());
+        return -1;
+    }
+
+#if defined(STEAM_LINK) || defined(Q_OS_WIN32)
+    // Steam Link requires that we initialize video before creating our
+    // QGuiApplication in order to configure the framebuffer correctly.
+    //
+    // We keep the video subsystem initialized on Windows because it's
+    // much more costly to reinitialize than other platforms. It hurts
+    // the settings page transition performance significantly.
+    if (SDL_InitSubSystem(SDL_INIT_VIDEO) != 0) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+                     "SDL_InitSubSystem(SDL_INIT_VIDEO) failed: %s",
+                     SDL_GetError());
+        return -1;
+    }
+#endif
+
+    // Use atexit() to ensure SDL_Quit() is called. This avoids
+    // racing with object destruction where SDL may be used.
+    atexit(SDL_Quit);
+
+    // Avoid the default behavior of changing the timer resolution to 1 ms.
     // We don't want this all the time that Moonlight is open. We will set
     // it manually when we start streaming.
     SDL_SetHint(SDL_HINT_TIMER_RESOLUTION, "0");
