@@ -6,15 +6,15 @@ Eclipse is a Moonlight desktop client variant with a dedicated control center fo
 
 **Eclipse 0.02** adds a Tailscale device picker to the PC list and prefers Intel integrated graphics for VA-API decoding on hybrid Linux systems.
 
-[Download Eclipse 0.02 for Fedora 44 x86_64](https://github.com/NotADeveloper4665/Eclipse/releases/tag/eclipse-0.02). The release contains the RPM and a versioned full source archive. The Fedora RPM recommends Fedora's Intel VA-API driver package for Intel hardware.
+[Download Eclipse 0.02 for Fedora 44 x86_64](https://github.com/NotADeveloper4665/Eclipse/releases/tag/eclipse-0.02.1). The release contains the RPM and a versioned full source archive. The Fedora RPM recommends Fedora's Intel VA-API driver package for Intel hardware.
 
 The first release, [Eclipse 0.01](https://github.com/NotADeveloper4665/Eclipse/releases/tag/eclipse-0.01), remains available.
 
 ## Source and builds
 
-The current source snapshot is in [Eclipse-source.zip](Eclipse-source.zip), with the Eclipse 0.02 source archive attached to its release. Extract the archive and open `Eclipse/moonlight-qt.pro` in Qt Creator, or follow `Eclipse/ECLIPSE.md` for build notes.
+The full Eclipse 0.02 source archive is attached to its release. Extract it and open `Eclipse/moonlight-qt.pro` in Qt Creator, or follow `Eclipse/ECLIPSE.md` for build notes.
 
-The snapshot is based on Moonlight Qt and retains its license and upstream notices. See `Eclipse/LICENSE` and `Eclipse/README.md`.
+The source is based on Moonlight Qt and retains its license and upstream notices. See `Eclipse/LICENSE` and `Eclipse/README.md`.
 
 The RPM build specification and release workflow are in `packaging/` and `.github/workflows/`.
 
