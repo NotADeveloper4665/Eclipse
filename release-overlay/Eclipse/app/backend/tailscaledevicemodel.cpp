@@ -15,22 +15,37 @@ TailscaleDeviceModel::TailscaleDeviceModel(QObject* parent)
     m_Timeout.setSingleShot(true);
     m_Timeout.setInterval(8000);
     connect(&m_Timeout, &QTimer::timeout, this, [this] {
+        m_TimedOut = true;
         m_Process.kill();
+        clearDevices();
         setLoading(false);
+        setStatusText(tr("Tailscale timed out"));
         setError(tr("Tailscale did not respond in time. Check that Tailscale is running, then refresh."));
     });
     connect(&m_Process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
             this, [this](int exitCode, QProcess::ExitStatus exitStatus) {
         m_Timeout.stop();
+        if (m_TimedOut) {
+            m_TimedOut = false;
+            return;
+        }
         setLoading(false);
         if (exitStatus != QProcess::NormalExit || exitCode != 0) {
-            setError(tr("Tailscale could not read device status. Check that Tailscale is running and signed in."));
+            const QString diagnostic = QString::fromLocal8Bit(m_Process.readAllStandardError()).trimmed().left(240);
+            clearDevices();
+            setStatusText(tr("Unable to read Tailscale status"));
+            setError(diagnostic.isEmpty()
+                     ? tr("Tailscale could not read device status. Check that Tailscale is running and signed in.")
+                     : tr("Tailscale could not read device status. Check that Tailscale is running and signed in.\n%1").arg(diagnostic));
             return;
         }
 
         QString parseError;
-        const QVector<Device> devices = parseStatus(m_Process.readAllStandardOutput(), &parseError);
+        QString status;
+        const QVector<Device> devices = parseStatus(m_Process.readAllStandardOutput(), &status, &parseError);
+        setStatusText(status);
         if (!parseError.isEmpty()) {
+            clearDevices();
             setError(parseError);
             return;
         }
@@ -44,7 +59,9 @@ TailscaleDeviceModel::TailscaleDeviceModel(QObject* parent)
     connect(&m_Process, &QProcess::errorOccurred, this, [this](QProcess::ProcessError error) {
         if (error == QProcess::FailedToStart) {
             m_Timeout.stop();
+            clearDevices();
             setLoading(false);
+            setStatusText(tr("Tailscale CLI unavailable"));
             setError(tr("Tailscale CLI was not found. Install Tailscale and make sure its CLI is available."));
         }
     });
@@ -80,6 +97,7 @@ void TailscaleDeviceModel::refresh()
         m_Process.kill();
         m_Process.waitForFinished(500);
     }
+    m_TimedOut = false;
 
     QString program = QStandardPaths::findExecutable(
 #ifdef Q_OS_WIN
@@ -95,12 +113,15 @@ void TailscaleDeviceModel::refresh()
     }
 #endif
     if (program.isEmpty()) {
+        clearDevices();
         setLoading(false);
+        setStatusText(tr("Tailscale CLI unavailable"));
         setError(tr("Tailscale CLI was not found. Install Tailscale and make sure its CLI is available."));
         return;
     }
 
     setError(QString());
+    setStatusText(tr("Checking Tailscale…"));
     setLoading(true);
     m_Process.setProgram(program);
     m_Process.setArguments({QStringLiteral("status"), QStringLiteral("--json")});
@@ -108,23 +129,41 @@ void TailscaleDeviceModel::refresh()
     m_Timeout.start();
 }
 
-QVector<TailscaleDeviceModel::Device> TailscaleDeviceModel::parseStatus(const QByteArray& json, QString* error)
+QVector<TailscaleDeviceModel::Device> TailscaleDeviceModel::parseStatus(const QByteArray& json, QString* statusText, QString* error)
 {
     QJsonParseError parseError;
     const QJsonDocument document = QJsonDocument::fromJson(json, &parseError);
     if (parseError.error != QJsonParseError::NoError || !document.isObject()) {
+        *statusText = QObject::tr("Invalid Tailscale status");
         *error = QObject::tr("Tailscale returned invalid device data.");
         return {};
     }
 
-    const QJsonValue peersValue = document.object().value(QStringLiteral("Peer"));
-    if (document.object().value(QStringLiteral("BackendState")).toString() != QStringLiteral("Running")) {
-        *error = QObject::tr("Tailscale is not connected to a tailnet. Sign in, then refresh.");
+    const QJsonObject status = document.object();
+    const QString backendState = status.value(QStringLiteral("BackendState")).toString();
+    if (backendState == QStringLiteral("Running")) {
+        *statusText = QObject::tr("Connected to Tailscale");
+    }
+    else if (backendState == QStringLiteral("NeedsLogin")) {
+        *statusText = QObject::tr("Sign-in required");
+        *error = QObject::tr("Tailscale needs you to sign in. Open the Tailscale app, sign in to your tailnet, then refresh.");
+        return {};
+    }
+    else if (backendState == QStringLiteral("Stopped")) {
+        *statusText = QObject::tr("Tailscale is stopped");
+        *error = QObject::tr("Start the Tailscale app or service, then refresh this list.");
+        return {};
+    }
+    else {
+        *statusText = backendState.isEmpty()
+                ? QObject::tr("Tailscale is not connected")
+                : QObject::tr("Tailscale: %1").arg(backendState);
+        *error = QObject::tr("Tailscale is not connected to a tailnet. Start it or sign in, then refresh.");
         return {};
     }
 
     QVector<Device> devices;
-    const QJsonObject peers = peersValue.toObject();
+    const QJsonObject peers = status.value(QStringLiteral("Peer")).toObject();
     for (auto it = peers.constBegin(); it != peers.constEnd(); ++it) {
         const QJsonObject peer = it.value().toObject();
         const QJsonArray addresses = peer.value(QStringLiteral("TailscaleIPs")).toArray();
@@ -157,6 +196,16 @@ QVector<TailscaleDeviceModel::Device> TailscaleDeviceModel::parseStatus(const QB
     return devices;
 }
 
+void TailscaleDeviceModel::clearDevices()
+{
+    if (m_Devices.isEmpty()) {
+        return;
+    }
+    beginResetModel();
+    m_Devices.clear();
+    endResetModel();
+}
+
 void TailscaleDeviceModel::setError(const QString& error)
 {
     if (m_Error != error) {
@@ -170,5 +219,13 @@ void TailscaleDeviceModel::setLoading(bool loading)
     if (m_Loading != loading) {
         m_Loading = loading;
         emit loadingChanged();
+    }
+}
+
+void TailscaleDeviceModel::setStatusText(const QString& statusText)
+{
+    if (m_StatusText != statusText) {
+        m_StatusText = statusText;
+        emit statusChanged();
     }
 }
