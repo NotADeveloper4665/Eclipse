@@ -1,0 +1,43 @@
+name: Build Fedora RPM
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  rpm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out release source
+        uses: actions/checkout@v4
+
+      - name: Build RPM in Fedora 44
+        run: |
+          docker run --rm \
+            --volume "$GITHUB_WORKSPACE:/work" \
+            --workdir /work \
+            fedora:44 /bin/bash -euxc '
+              dnf install -y https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-44.noarch.rpm
+              dnf install -y rpm-build gcc gcc-c++ make unzip tar \
+                qt5-qtbase-devel qt5-qtdeclarative-devel qt5-qtsvg-devel \
+                qt5-qtquickcontrols2-devel openssl-devel SDL2-devel SDL2_ttf-devel \
+                ffmpeg-devel libva-devel libvdpau-devel opus-devel \
+                pulseaudio-libs-devel alsa-lib-devel libdrm-devel
+              mkdir -p /work/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
+              mkdir -p /tmp/eclipse-source
+              unzip -q /work/Eclipse-source.zip -d /tmp/eclipse-source
+              mv /tmp/eclipse-source/Eclipse /tmp/eclipse-source/moonlight-eclipse-0.01
+              tar -C /tmp/eclipse-source -czf /work/rpmbuild/SOURCES/moonlight-eclipse-0.01.tar.gz moonlight-eclipse-0.01
+              cp /work/packaging/moonlight-eclipse.desktop /work/rpmbuild/SOURCES/
+              rpmbuild -bb /work/packaging/eclipse.spec --define "_topdir /work/rpmbuild"
+            '
+          mkdir -p deliverables
+          cp Eclipse-source.zip deliverables/Eclipse-source-0.01.zip
+
+      - name: Attach RPM and source to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${GITHUB_REF_NAME}" rpmbuild/RPMS/x86_64/*.rpm deliverables/Eclipse-source-0.01.zip --repo "${GITHUB_REPOSITORY}"

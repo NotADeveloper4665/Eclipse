@@ -8,6 +8,10 @@ The complete source snapshot, including the Eclipse changes and vendored submodu
 
 The snapshot is based on Moonlight Qt and retains its license and upstream notices. See `Eclipse/LICENSE` and `Eclipse/README.md`.
 
+## Fedora release
+
+The first release is **Eclipse 0.01** for Fedora 44 x86_64. The release page will include the Fedora RPM and source archive. The RPM build specification and release workflow are in `packaging/` and `.github/workflows/`.
+
 ## Validation
 
 The Eclipse control center was built and tested on Linux x86_64 with Qt 5.15.13. See `Eclipse/ECLIPSE-VALIDATION.md` for the tested controls and platform limitations.
