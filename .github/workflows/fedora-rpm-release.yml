@@ -14,14 +14,18 @@ jobs:
       - name: Check out release source
         uses: actions/checkout@v4
 
+      - name: Set package version
+        run: echo "VERSION=${GITHUB_REF_NAME#eclipse-}" >> "$GITHUB_ENV"
+
       - name: Build RPM in Fedora 44
         run: |
           docker run --rm \
             --volume "$GITHUB_WORKSPACE:/work" \
             --workdir /work \
+            --env VERSION \
             fedora:44 /bin/bash -euxc '
               dnf install -y https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-44.noarch.rpm
-              dnf install -y rpm-build gcc gcc-c++ make unzip tar \
+              dnf install -y rpm-build gcc gcc-c++ make unzip zip tar \
                 qt5-qtbase-devel qt5-qtdeclarative-devel qt5-qtsvg-devel \
                 qt5-qtquickcontrols2-devel openssl-devel SDL2-devel SDL2_ttf-devel \
                 ffmpeg-devel libva-devel libvdpau-devel opus-devel \
@@ -29,15 +33,18 @@ jobs:
               mkdir -p /work/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
               mkdir -p /tmp/eclipse-source
               unzip -q /work/Eclipse-source.zip -d /tmp/eclipse-source
-              mv /tmp/eclipse-source/Eclipse /tmp/eclipse-source/moonlight-eclipse-0.01
-              tar -C /tmp/eclipse-source -czf /work/rpmbuild/SOURCES/moonlight-eclipse-0.01.tar.gz moonlight-eclipse-0.01
+              cp -a /work/release-overlay/Eclipse/. /tmp/eclipse-source/Eclipse/
+              cd /tmp/eclipse-source
+              zip -qr "/work/Eclipse-source-${VERSION}.zip" Eclipse
+              mv /tmp/eclipse-source/Eclipse "/tmp/eclipse-source/moonlight-eclipse-${VERSION}"
+              tar -C /tmp/eclipse-source -czf "/work/rpmbuild/SOURCES/moonlight-eclipse-${VERSION}.tar.gz" "moonlight-eclipse-${VERSION}"
               cp /work/packaging/moonlight-eclipse.desktop /work/rpmbuild/SOURCES/
               rpmbuild -bb /work/packaging/eclipse.spec --define "_topdir /work/rpmbuild"
             '
           mkdir -p deliverables
-          cp Eclipse-source.zip deliverables/Eclipse-source-0.01.zip
+          cp "Eclipse-source-${VERSION}.zip" "deliverables/Eclipse-source-${VERSION}.zip"
 
       - name: Attach RPM and source to the release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "${GITHUB_REF_NAME}" rpmbuild/RPMS/x86_64/*.rpm deliverables/Eclipse-source-0.01.zip --repo "${GITHUB_REPOSITORY}"
+        run: gh release upload "${GITHUB_REF_NAME}" rpmbuild/RPMS/x86_64/*.rpm "deliverables/Eclipse-source-${VERSION}.zip" --repo "${GITHUB_REPOSITORY}"
