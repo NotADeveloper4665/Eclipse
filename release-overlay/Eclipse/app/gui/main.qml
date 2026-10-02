@@ -546,7 +546,14 @@ ApplicationWindow {
             Label {
                 Layout.fillWidth: true
                 wrapMode: Text.WordWrap
-                text: qsTr("Choose a device to add it to Moonlight and check for a Sunshine host.")
+                text: qsTr("Choose a device to add it to Moonlight and check for a Sunshine host. Offline devices may not respond until they reconnect.")
+            }
+
+            Label {
+                Layout.fillWidth: true
+                visible: TailscaleDeviceModel.statusText.length > 0
+                font.bold: true
+                text: TailscaleDeviceModel.statusText
             }
 
             BusyIndicator {
