@@ -15,7 +15,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set package version
-        run: echo "VERSION=${GITHUB_REF_NAME#eclipse-}" >> "$GITHUB_ENV"
+        run: |
+          VERSION="$(sed -n 's/^Version:[[:space:]]*//p' packaging/eclipse.spec | head -n 1)"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
 
       - name: Build RPM in Fedora 44
         run: |
