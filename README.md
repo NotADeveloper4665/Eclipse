@@ -4,15 +4,15 @@ Eclipse is a Moonlight desktop client variant with a dedicated control center fo
 
 ## Latest release
 
-**Eclipse 0.02** adds a Tailscale device picker to the PC list and prefers Intel integrated graphics for VA-API decoding on hybrid Linux systems.
+**Eclipse 0.03** improves streaming setup with saved per-PC profiles, clearer Tailscale connection status, stream diagnostics, and labeled resolution and frame-rate dropdowns. It also includes the Tailscale device picker and Intel VA-API preference introduced in 0.02.
 
-[Download Eclipse 0.02 for Fedora 44 x86_64](https://github.com/NotADeveloper4665/Eclipse/releases/tag/eclipse-0.02.1). The release contains the RPM and a versioned full source archive. The Fedora RPM recommends Fedora's Intel VA-API driver package for Intel hardware.
+[Download Eclipse 0.03 for Fedora 44 x86_64](https://github.com/NotADeveloper4665/Eclipse/releases/tag/eclipse-0.03). The release contains the RPM and a versioned full source archive.
 
-The first release, [Eclipse 0.01](https://github.com/NotADeveloper4665/Eclipse/releases/tag/eclipse-0.01), remains available.
+The previous [Eclipse 0.02 release](https://github.com/NotADeveloper4665/Eclipse/releases/tag/eclipse-0.02.1) and [Eclipse 0.01](https://github.com/NotADeveloper4665/Eclipse/releases/tag/eclipse-0.01) remain available.
 
 ## Source and builds
 
-The full Eclipse 0.02 source archive is attached to its release. Extract it and open `Eclipse/moonlight-qt.pro` in Qt Creator, or follow `Eclipse/ECLIPSE.md` for build notes.
+The full Eclipse 0.03 source archive is attached to its release. Extract it and open `Eclipse/moonlight-qt.pro` in Qt Creator, or follow `Eclipse/ECLIPSE.md` for build notes.
 
 The source is based on Moonlight Qt and retains its license and upstream notices. See `Eclipse/LICENSE` and `Eclipse/README.md`.
 
