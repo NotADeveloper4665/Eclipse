@@ -1,5 +1,5 @@
 Name:           moonlight-eclipse
-Version:        0.03
+Version:        0.03.1
 Release:        1%{?dist}
 Summary:        Moonlight streaming client with the Eclipse control center
 License:        GPL-3.0-only
@@ -55,6 +55,9 @@ install -Dpm0644 app/res/moonlight.svg \
 %{_datadir}/icons/hicolor/scalable/apps/moonlight-eclipse.svg
 
 %changelog
+* Fri Oct 02 2026 Eclipse contributors <eclipse@example.invalid> - 0.03.1-1
+- Replace in-session resolution and other discrete settings steppers with dropdown menus
+
 * Fri Oct 02 2026 Eclipse contributors <eclipse@example.invalid> - 0.03-1
 - Add per-PC stream profiles, stream diagnostics, and clearer settings selectors
 - Improve Tailscale status reporting and clean up the resolution and frame-rate controls
