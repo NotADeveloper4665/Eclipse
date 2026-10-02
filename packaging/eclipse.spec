@@ -1,5 +1,5 @@
 Name:           moonlight-eclipse
-Version:        0.01
+Version:        0.02
 Release:        1%{?dist}
 Summary:        Moonlight streaming client with the Eclipse control center
 License:        GPL-3.0-only
@@ -28,6 +28,7 @@ BuildRequires:  libdrm-devel
 Requires:       qt5-qtdeclarative
 Requires:       qt5-qtquickcontrols2
 Requires:       qt5-qtsvg
+Recommends:     libva-intel-media-driver
 
 %description
 Eclipse is a Moonlight desktop streaming client with an in-session control
@@ -54,5 +55,8 @@ install -Dpm0644 app/res/moonlight.svg \
 %{_datadir}/icons/hicolor/scalable/apps/moonlight-eclipse.svg
 
 %changelog
+* Fri Oct 02 2026 Eclipse contributors <eclipse@example.invalid> - 0.02-1
+- Add Tailscale device discovery and Intel VA-API render-node preference
+
 * Fri Oct 02 2026 Eclipse contributors <eclipse@example.invalid> - 0.01-1
 - Initial Eclipse release for Fedora Linux
