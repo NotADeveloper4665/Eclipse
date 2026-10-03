@@ -36,6 +36,7 @@ jobs:
               mkdir -p /tmp/eclipse-source
               unzip -q /work/Eclipse-source.zip -d /tmp/eclipse-source
               cp -a /work/release-overlay/Eclipse/. /tmp/eclipse-source/Eclipse/
+              qmllint -U /tmp/eclipse-source/Eclipse/app/gui/SettingsView.qml
               cd /tmp/eclipse-source
               zip -qr "/work/Eclipse-source-${VERSION}.zip" Eclipse
               mv /tmp/eclipse-source/Eclipse "/tmp/eclipse-source/moonlight-eclipse-${VERSION}"
