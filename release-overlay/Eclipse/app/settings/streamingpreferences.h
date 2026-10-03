@@ -250,4 +250,5 @@ private:
     QString getSuffixFromLanguage(Language lang);
 
     QQmlEngine* m_QmlEngine;
+    QString m_HostUuid;
 };
