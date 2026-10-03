@@ -159,6 +159,7 @@ void StreamingPreferences::clearHostStreamProfile(const QString& hostUuid)
 
 void StreamingPreferences::applyHostStreamProfile(const QString& hostUuid)
 {
+    m_HostUuid = hostUuid;
     QSettings settings;
     settings.beginGroup(SER_HOST_STREAM_PROFILES);
     settings.beginGroup(hostUuid);
@@ -388,6 +389,33 @@ QString StreamingPreferences::getSuffixFromLanguage(StreamingPreferences::Langua
 
 void StreamingPreferences::save()
 {
+    if (!m_HostUuid.isEmpty()) {
+        // Persist host overrides where the next session will load them, without
+        // replacing the default resolution, frame rate, bitrate, or audio mode.
+        QSettings profile;
+        profile.beginGroup(SER_HOST_STREAM_PROFILES);
+        profile.beginGroup(m_HostUuid);
+        profile.setValue(SER_WIDTH, width);
+        profile.setValue(SER_HEIGHT, height);
+        profile.setValue(SER_FPS, fps);
+        profile.setValue(SER_BITRATE, bitrateKbps);
+        profile.setValue(SER_AUDIOCFG, static_cast<int>(audioConfig));
+        profile.endGroup();
+        profile.endGroup();
+
+        // These controls are shared preferences rather than host overrides.
+        auto* global = get();
+        global->videoCodecConfig = videoCodecConfig;
+        global->enableHdr = enableHdr;
+        global->enableVsync = enableVsync;
+        global->framePacing = framePacing;
+        global->absoluteMouseMode = absoluteMouseMode;
+        global->multiController = multiController;
+        global->showPerformanceOverlay = showPerformanceOverlay;
+        global->save();
+        return;
+    }
+
     QSettings settings;
 
     settings.setValue(SER_WIDTH, width);
