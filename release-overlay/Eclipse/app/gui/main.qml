@@ -233,6 +233,22 @@ ApplicationWindow {
         }
     }
 
+    // Keep the main application settings route independent from the generic
+    // QML type lookup used by other toolbar destinations.
+    function openSettingsView()
+    {
+        var existingSettings = stackView.find(function(item, index) {
+            return item.objectName === qsTr("Settings")
+        })
+
+        if (existingSettings !== null) {
+            stackView.pop(existingSettings)
+        }
+        else {
+            stackView.push("qrc:/gui/SettingsView.qml")
+        }
+    }
+
     header: ToolBar {
         id: toolBar
         height: 60
@@ -445,7 +461,7 @@ ApplicationWindow {
 
                 iconSource:  "qrc:/res/settings.svg"
 
-                onClicked: navigateTo("qrc:/gui/SettingsView.qml", SettingsView)
+                onClicked: openSettingsView()
 
                 Keys.onDownPressed: {
                     stackView.currentItem.forceActiveFocus(Qt.TabFocus)
