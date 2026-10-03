@@ -90,6 +90,35 @@ int main(int argc, char** argv)
     click(65,180); // Video & Display
     click(610,195); // Capture the open dropdown for the UI preview
     paint().save("eclipse-settings-dropdown-preview.png");
-    qInfo("PASS: dropdown selection, draft/save/reload, slider, actions, confirmation, input suppression and scaling at four sizes");
+    prefs->width = 1920; prefs->height = 1080; prefs->fps = 60;
+    prefs->bitrateKbps = 20000; prefs->audioConfig = StreamingPreferences::AC_STEREO;
+    prefs->save();
+    StreamingPreferences::saveHostStreamProfile("host-a");
+    StreamingPreferences::saveHostStreamProfile("host-b");
+    auto* host = StreamingPreferences::createForHost("host-a");
+    check(host != nullptr, "host profile loads");
+    host->width = 2560; host->height = 1440; host->fps = 120;
+    host->bitrateKbps = 45000; host->audioConfig = StreamingPreferences::AC_51_SURROUND;
+    host->videoCodecConfig = StreamingPreferences::VCC_FORCE_HEVC;
+    host->save();
+    delete host;
+    prefs->reload();
+    check(prefs->width == 1920 && prefs->height == 1080 && prefs->fps == 60 &&
+          prefs->bitrateKbps == 20000 && prefs->audioConfig == StreamingPreferences::AC_STEREO,
+          "host save must preserve global stream defaults");
+    check(prefs->videoCodecConfig == StreamingPreferences::VCC_FORCE_HEVC,
+          "shared codec preference persists");
+    host = StreamingPreferences::createForHost("host-a");
+    check(host->width == 2560 && host->height == 1440 && host->fps == 120 &&
+          host->bitrateKbps == 45000 && host->audioConfig == StreamingPreferences::AC_51_SURROUND,
+          "reconnect reloads saved host overrides");
+    delete host;
+    host = StreamingPreferences::createForHost("host-b");
+    check(host->width == 1920 && host->fps == 60 && host->bitrateKbps == 20000,
+          "saving one host preserves other host profiles");
+    delete host;
+    StreamingPreferences::clearHostStreamProfile("host-a");
+    check(StreamingPreferences::createForHost("host-a") == nullptr, "cleared profile uses defaults");
+    qInfo("PASS: control-center interactions, persistence, input suppression, scaling, and host profile isolation");
     return 0;
 }
