@@ -4,15 +4,15 @@ Eclipse is a Moonlight desktop client variant with a dedicated control center fo
 
 ## Latest release
 
-**Eclipse 0.03.4** fixes navigation from the main application settings button. It includes the Qt QML disk-cache startup workaround and the dropdown selectors.
+**Eclipse 0.03.5** fixes the main application settings page failing to load due to invalid text at the start of `SettingsView.qml`. It includes the Qt QML disk-cache startup workaround and the dropdown selectors.
 
-[Download Eclipse 0.03.4 for Fedora 44 x86_64](https://github.com/NotADeveloper4665/Eclipse/releases/tag/eclipse-0.03.4). The release includes the RPM and the full source archive.
+[Download Eclipse 0.03.5 for Fedora 44 x86_64](https://github.com/NotADeveloper4665/Eclipse/releases/tag/eclipse-0.03.5). The release includes the RPM and the full source archive.
 
 Eclipse 0.03 added per-PC streaming profiles, stream diagnostics, and clearer Tailscale status handling. The [Eclipse 0.03 release](https://github.com/NotADeveloper4665/Eclipse/releases/tag/eclipse-0.03) and [Eclipse 0.02 release](https://github.com/NotADeveloper4665/Eclipse/releases/tag/eclipse-0.02.1) remain available.
 
 ## Source and builds
 
-The full Eclipse 0.03.4 source archive is attached to its release. Extract it and open `Eclipse/moonlight-qt.pro` in Qt Creator, or follow `Eclipse/ECLIPSE.md` for build notes.
+The full Eclipse 0.03.5 source archive is attached to its release. Extract it and open `Eclipse/moonlight-qt.pro` in Qt Creator, or follow `Eclipse/ECLIPSE.md` for build notes.
 
 The source is based on Moonlight Qt and retains its license and upstream notices. See `Eclipse/LICENSE` and `Eclipse/README.md`.
 
