@@ -423,6 +423,12 @@ int main(int argc, char *argv[])
 {
     SDL_SetMainReady();
 
+#ifdef Q_OS_LINUX
+    // Avoid crashes in Qt's QML disk-cache loader on affected systems.
+    // This must be set before QGuiApplication or QQmlApplicationEngine is created.
+    qputenv("QML_DISABLE_DISK_CACHE", "1");
+#endif
+
     // Set the app version for the QCommandLineParser's showVersion() command
     QCoreApplication::setApplicationVersion(VERSION_STR);
 
