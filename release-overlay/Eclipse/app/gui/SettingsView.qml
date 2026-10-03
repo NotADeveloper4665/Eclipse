@@ -828,7 +828,114 @@ Flickable {
                     ToolTip.delay: 1000
                     ToolTip.timeout: 5000
                     ToolTip.visible: hovered
-                    ToolTip.text: qsTr("Fullscre…1126 tokens truncated…               }
+                    ToolTip.text: qsTr("Fullscreen generally provides the best performance, but borderless windowed may work better with features like macOS Spaces, Alt+Tab, screenshot tools, on-screen overlays, etc.")
+                }
+
+                Row {
+                    spacing: 5
+                    width: parent.width
+
+                    CheckBox {
+                        id: vsyncCheck
+                        hoverEnabled: true
+                        text: qsTr("V-Sync")
+                        font.pointSize:  12
+                        checked: StreamingPreferences.enableVsync
+                        onCheckedChanged: {
+                            StreamingPreferences.enableVsync = checked
+                        }
+
+                        ToolTip.delay: 1000
+                        ToolTip.timeout: 5000
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("Disabling V-Sync allows sub-frame rendering latency, but it can display visible tearing")
+                    }
+
+                    CheckBox {
+                        id: framePacingCheck
+                        hoverEnabled: true
+                        text: qsTr("Frame pacing")
+                        font.pointSize:  12
+                        enabled: StreamingPreferences.enableVsync
+                        checked: StreamingPreferences.enableVsync && StreamingPreferences.framePacing
+                        onCheckedChanged: {
+                            StreamingPreferences.framePacing = checked
+                        }
+                        ToolTip.delay: 1000
+                        ToolTip.timeout: 5000
+                        ToolTip.visible: hovered
+                        ToolTip.text: qsTr("Frame pacing reduces micro-stutter by delaying frames that come in too early")
+                    }
+                }
+
+                CheckBox {
+                    id: enableHdr
+                    width: parent.width
+                    text: qsTr("Enable HDR")
+                    font.pointSize: 12
+
+                    enabled: SystemProperties.supportsHdr
+                    checked: enabled && StreamingPreferences.enableHdr
+                    onCheckedChanged: {
+                        StreamingPreferences.enableHdr = checked
+                    }
+
+                    // Updating StreamingPreferences.videoCodecConfig is handled above
+
+                    ToolTip.delay: 1000
+                    ToolTip.timeout: 5000
+                    ToolTip.visible: hovered
+                    ToolTip.text: enabled ?
+                                      qsTr("The stream will be HDR-capable, but some games may require an HDR monitor on your host PC to enable HDR mode.")
+                                    :
+                                      qsTr("HDR streaming is not supported on this PC.")
+                }
+            }
+        }
+
+        GroupBox {
+
+            id: audioSettingsGroupBox
+            width: (parent.width - (parent.leftPadding + parent.rightPadding))
+            padding: 12
+            title: "<font color=\"skyblue\">" + qsTr("Audio Settings") + "</font>"
+            font.pointSize: 12
+
+            Column {
+                anchors.fill: parent
+                spacing: 5
+
+                Label {
+                    width: parent.width
+                    id: resAudioTitle
+                    text: qsTr("Audio configuration")
+                    font.pointSize: 12
+                    wrapMode: Text.Wrap
+                }
+
+                AutoResizingComboBox {
+                    // ignore setting the index at first, and actually set it when the component is loaded
+                    Component.onCompleted: {
+                        var saved_audio = StreamingPreferences.audioConfig
+                        currentIndex = 0
+                        for (var i = 0; i < audioListModel.count; i++) {
+                            var el_audio = audioListModel.get(i).val;
+                            if (saved_audio === el_audio) {
+                                currentIndex = i
+                                break
+                            }
+                        }
+                        activated(currentIndex)
+                    }
+
+                    id: audioComboBox
+                    textRole: "text"
+                    model: ListModel {
+                        id: audioListModel
+                        ListElement {
+                            text: qsTr("Stereo")
+                            val: StreamingPreferences.AC_STEREO
+                        }
                         ListElement {
                             text: qsTr("5.1 surround sound")
                             val: StreamingPreferences.AC_51_SURROUND
