@@ -584,4 +584,11 @@ macx {
 }
 
 VERSION = "$$cat(version.txt)"
+eclipse-settings-test {
+    TARGET = eclipse-settings-test
+    SOURCES -= main.cpp
+    SOURCES += $$PWD/../tests/settings_test.cpp
+    CONFIG -= debug_and_release app_bundle
+    CONFIG += console
+}
 DEFINES += VERSION_STR=\\\"$$cat(version.txt)\\\"
