@@ -89,11 +89,10 @@ ApplicationWindow {
         visible: false
         font: ToolTip.toolTip.font
         text: ToolTip.toolTip.text
+        // Constrain the shared tooltip to wrap long text. Attached ToolTip
+        // properties require an Item, not the window itself.
+        ToolTip.toolTip.contentWidth: Math.min(width, 400)
     }
-
-    // This configures the maximum width of the singleton attached QML ToolTip. If left unconstrained,
-    // it will never insert a line break and just extend on forever.
-    ToolTip.toolTip.contentWidth: Math.min(tooltipTextLayoutHelper.width, 400)
 
     function goBack() {
         if (clearOnBack) {
