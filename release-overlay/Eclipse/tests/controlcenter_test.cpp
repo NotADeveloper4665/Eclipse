@@ -58,7 +58,7 @@ int main(int argc, char** argv)
     prefs->reload();
     check(prefs->width==2560,"settings persist through reload");
     click(70,335); // Network
-    click(723,254); // highest slider segment
+    click(739,253); // drag the bitrate slider to its maximum
     click(330,602);
     check(prefs->bitrateKbps==150000,"bandwidth slider and persistence");
     click(45,128); // General
