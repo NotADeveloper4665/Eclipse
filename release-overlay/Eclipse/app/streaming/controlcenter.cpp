@@ -32,6 +32,15 @@ void ControlCenter::save()
     m_Dirty = false;
 }
 
+void ControlCenter::setBitrateFromPoint(const QPointF& point)
+{
+    if (m_BitrateSliderRect.width() <= 0) return;
+    const qreal ratio = std::max<qreal>(0,std::min<qreal>(1,
+        (point.x()-(m_BitrateSliderRect.left()+1))/(m_BitrateSliderRect.width()-2)));
+    m_Bitrate = std::max(1000,std::min(150000,static_cast<int>(std::lround(1000+ratio*149000))));
+    m_Dirty = true;
+}
+
 QImage ControlCenter::render(QSize pixels, bool muted, bool fullscreen, const QString& statistics)
 {
     m_Pixels = pixels;
@@ -71,7 +80,7 @@ QImage ControlCenter::render(QSize pixels, bool muted, bool fullscreen, const QS
         text(r.adjusted(14,0,-8,0), label, 13);
     };
     // Moonlight uses Qt Quick Controls Material dark surfaces: #303030 canvas, #424242 surfaces.
-    // Its default dark Material primary/accent shades are indigo and pink.
+    // Moonlight's dark theme uses an indigo-purple accent.
     card({0,0,1080,640}, QColor("#303030"));
     card({0,0,205,640}, QColor("#363636"));
     text({24,20,170,35}, "Eclipse", 24);
@@ -188,14 +197,30 @@ QImage ControlCenter::render(QSize pixels, bool muted, bool fullscreen, const QS
         text({239,310,500,100}, "Menu: hold Back, then press Start.\nNavigate: D-pad / Tab. Select: A / Enter.\nClose: B / Escape. Change value: Left / Right.\nUSB forwarding is unavailable in this client.", 13, QColor("#BDBDBD"));
     }
     else if (m_Page == 4) {
-        setting("Maximum video bitrate", QString("%1 Mbps").arg(m_Bitrate / 1000.0,0,'f',1), [this](int d){
-            m_Bitrate = std::max(1000, std::min(150000, m_Bitrate + (d < 0 ? -5000 : 5000)));
-        });
-        // A segmented bandwidth meter also acts as a mouse/touch slider.
-        for (int i = 0; i < 15; ++i) {
-            button({239+i*34.0,245,28,24}, "", [this,i](int){ m_Bitrate = (i+1)*10000; m_Dirty = true; }, m_Bitrate >= (i+1)*10000);
+        card({229,171,523,52}, QColor("#424242"));
+        text({245,171,240,52}, "Maximum video bitrate", 14);
+        text({492,171,245,52}, QString("%1 Mbps").arg(m_Bitrate / 1000.0,0,'f',1), 14);
+
+        m_BitrateSliderRect = QRectF(238,238,502,40);
+        const qreal bitrateRatio = (m_Bitrate - 1000) / 149000.0;
+        const QRectF bitrateTrack(239,253,500,6);
+        painter.setPen(Qt::NoPen);
+        painter.setBrush(QColor("#555555"));
+        painter.drawRoundedRect(bitrateTrack,3,3);
+        painter.setBrush(QColor("#9FA8DA"));
+        painter.drawRoundedRect(QRectF(bitrateTrack.x(),bitrateTrack.y(),bitrateTrack.width()*bitrateRatio,bitrateTrack.height()),3,3);
+        painter.drawEllipse(QPointF(bitrateTrack.x()+bitrateTrack.width()*bitrateRatio,bitrateTrack.center().y()),9,9);
+        const int sliderIndex = m_Targets.size();
+        m_Targets.append({m_BitrateSliderRect,"Maximum video bitrate",[this](int direction){
+            m_Bitrate = std::max(1000,std::min(150000,m_Bitrate+(direction < 0 ? -5000 : 5000)));
+            m_Dirty = true;
+        }});
+        if (sliderIndex == m_Focus && m_Focus >= 0) {
+            painter.setBrush(Qt::NoBrush);
+            painter.setPen(QPen(QColor("#9FA8DA"),2));
+            painter.drawRoundedRect(m_BitrateSliderRect.adjusted(1,1,-1,-1),5,5);
         }
-        text({239,289,500,74}, "1 - 150 Mbps. Bitrate is negotiated at connection\nstartup; reconnect to apply your new limit.", 13, QColor("#BDBDBD"));
+        text({239,289,500,74}, "1 - 150 Mbps. Drag the slider or use Left/Right.\\nReconnect to apply the new limit.", 13, QColor("#BDBDBD"));
     }
     else {
         text({239,170,500,260}, "OPEN QUICK MENU\nAlt + Super / Command + O\nCtrl + Alt + Shift + O\nController: hold Back, press Start\n\nNAVIGATION\nTab / Shift + Tab or D-pad\nEnter / A selects; arrows change values\nEscape / B returns to your stream", 14);
