@@ -79,8 +79,9 @@ int main(int argc, char** argv)
     mouse(SDL_MOUSEBUTTONDOWN,239,253);
     mouse(SDL_MOUSEMOTION,489,253);
     mouse(SDL_MOUSEBUTTONUP,489,253);
+    mouse(SDL_MOUSEMOTION,739,253);
     click(330,602);
-    check(prefs->bitrateKbps>=75000 && prefs->bitrateKbps<=76000,"bitrate slider supports dragging");
+    check(prefs->bitrateKbps>=75000 && prefs->bitrateKbps<=76000,"release stops bitrate slider dragging");
     click(45,128); // General
     click(350,395);
     check(actions.last()!=ControlCenter::Disconnect,"disconnect needs confirmation");
