@@ -25,6 +25,7 @@ private:
     enum Dropdown { NoDropdown, ResolutionDropdown, FrameRateDropdown, CodecDropdown, AudioDropdown };
     struct Target { QRectF rect; QString label; std::function<void(int)> invoke; };
     void activate(int index, int direction = 1);
+    void setBitrateFromPoint(const QPointF& point);
     StreamingPreferences* m_Preferences;
     QVector<Target> m_Targets;
     QSize m_Pixels;
@@ -34,6 +35,8 @@ private:
     int m_Focus = -1;
     bool m_Dirty = false;
     bool m_ConfirmDisconnect = false;
+    bool m_DraggingBitrate = false;
+    QRectF m_BitrateSliderRect;
     int m_Width, m_Height, m_Fps, m_Bitrate;
     StreamingPreferences::VideoCodecConfig m_Codec;
     StreamingPreferences::AudioConfig m_Audio;
