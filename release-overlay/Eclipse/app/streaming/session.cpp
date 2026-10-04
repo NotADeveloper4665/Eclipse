@@ -2108,9 +2108,11 @@ void Session::exec()
             }
             if (controlOpen && event.type == SDL_CONTROLLERBUTTONDOWN) swallowedControllerButtons.insert(id);
         }
-        if (event.type == SDL_MOUSEBUTTONUP && swallowedMouseButtons.remove(event.button.button)) continue;
+        const bool swallowedMouseButtonUp = event.type == SDL_MOUSEBUTTONUP &&
+                                                swallowedMouseButtons.remove(event.button.button);
         if (controlOpen && event.type == SDL_MOUSEBUTTONDOWN) swallowedMouseButtons.insert(event.button.button);
-        if (event.type == SDL_FINGERUP && swallowedFingers.remove(event.tfinger.fingerId)) continue;
+        const bool swallowedFingerUp = event.type == SDL_FINGERUP &&
+                                       swallowedFingers.remove(event.tfinger.fingerId);
         if (!controlOpen && event.type == SDL_FINGERMOTION && swallowedFingers.contains(event.tfinger.fingerId)) continue;
         if (controlOpen && event.type == SDL_FINGERDOWN) swallowedFingers.insert(event.tfinger.fingerId);
         if (controlOpen) {
@@ -2126,6 +2128,7 @@ void Session::exec()
 #endif
             if (event.type == SDL_WINDOWEVENT) controlNeedsPaint = true;
         }
+        if (swallowedMouseButtonUp || swallowedFingerUp) continue;
         switch (event.type) {
         case SDL_QUIT:
             SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
