@@ -32,7 +32,22 @@ int main(int argc, char** argv)
         e.button.x = std::lround((size.width()-1080*scale)/2 + x*scale);
         e.button.y = std::lround((size.height()-640*scale)/2 + y*scale);
         check(center.handleEvent(e,size),"mouse must be consumed");
+        e.type = SDL_MOUSEBUTTONUP;
+        check(center.handleEvent(e,size),"mouse release must be consumed");
         paint();
+    };
+    auto mouse = [&](Uint32 type, double x, double y) {
+        const double scale = std::min({1.25,size.width()/1120.0,size.height()/690.0});
+        const int px = std::lround((size.width()-1080*scale)/2 + x*scale);
+        const int py = std::lround((size.height()-640*scale)/2 + y*scale);
+        SDL_Event e = {}; e.type = type;
+        if (type == SDL_MOUSEMOTION) {
+            e.motion.x = px; e.motion.y = py;
+        }
+        else {
+            e.button.button = SDL_BUTTON_LEFT; e.button.x = px; e.button.y = py;
+        }
+        check(center.handleEvent(e,size),"mouse drag event must be consumed");
     };
     auto pressKey = [&](SDL_Keycode keyCode) {
         SDL_Event e = {}; e.type = SDL_KEYDOWN; e.key.keysym.sym = keyCode;
@@ -61,6 +76,11 @@ int main(int argc, char** argv)
     click(739,253); // drag the bitrate slider to its maximum
     click(330,602);
     check(prefs->bitrateKbps==150000,"bandwidth slider and persistence");
+    mouse(SDL_MOUSEBUTTONDOWN,239,253);
+    mouse(SDL_MOUSEMOTION,489,253);
+    mouse(SDL_MOUSEBUTTONUP,489,253);
+    click(330,602);
+    check(prefs->bitrateKbps>=75000 && prefs->bitrateKbps<=76000,"bitrate slider supports dragging");
     click(45,128); // General
     click(350,395);
     check(actions.last()!=ControlCenter::Disconnect,"disconnect needs confirmation");
