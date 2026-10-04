@@ -1,5 +1,5 @@
 Name:           moonlight-eclipse
-Version:        0.03.8
+Version:        0.03.9
 Release:        1%{?dist}
 Summary:        Moonlight streaming client with the Eclipse control center
 License:        GPL-3.0-only
@@ -55,6 +55,9 @@ install -Dpm0644 app/res/moonlight.svg \
 %{_datadir}/icons/hicolor/scalable/apps/moonlight-eclipse.svg
 
 %changelog
+* Sun Oct 04 2026 Eclipse contributors <eclipse@example.invalid> - 0.03.9-1
+- Match the overlay accent to Moonlight's default dark-theme Material Purple
+
 * Sun Oct 04 2026 Eclipse contributors <eclipse@example.invalid> - 0.03.8-1
 - Use a purple overlay accent and route captured mouse and touch releases to stop slider dragging
 
