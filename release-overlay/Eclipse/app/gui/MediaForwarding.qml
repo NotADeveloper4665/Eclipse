@@ -10,7 +10,7 @@ Column {
     spacing: 6
     property var forwarding
     Component.onCompleted: forwarding.refresh()
-    Label { text: row.title; font.bold: true }
+    Label { width: parent.width; text: row.title; font.pointSize: 12; font.bold: true; wrapMode: Text.Wrap }
     ComboBox {
         id: picker
         width: parent.width

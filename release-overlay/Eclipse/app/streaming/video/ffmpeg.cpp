@@ -512,6 +512,7 @@ bool FFmpegVideoDecoder::completeInitialization(const AVCodec* decoder, enum AVP
     m_OriginalVideoHeight = params->height;
     m_StreamFps = params->frameRate;
     m_VideoFormat = params->videoFormat;
+    m_FsrMode = params->fsrMode;
     m_CurrentTestMode = testMode;
 
     // Don't bother initializing Pacer if we're not actually going to render
@@ -935,6 +936,30 @@ void FFmpegVideoDecoder::stringifyVideoStats(VIDEO_STATS& stats, char* output, i
             offset += ret;
         }
 
+        ret = snprintf(&output[offset], length - offset,
+                       "Pipeline: decoder=%s, renderer=%s%s\n",
+                       m_VideoDecoderCtx && m_VideoDecoderCtx->codec ? m_VideoDecoderCtx->codec->name : "unknown",
+                       m_FrontendRenderer ? m_FrontendRenderer->getRendererName() : "unknown",
+                       m_BackendRenderer && m_FrontendRenderer != m_BackendRenderer ? " (separate decode/render stages)" : "");
+        if (ret < 0 || ret >= length - offset) { SDL_assert(false); return; }
+        offset += ret;
+
+        if (m_FsrMode > 0) {
+            static const double fsrRatios[] = {1.0, 1.5, 1.7, 2.0};
+            const double ratio = fsrRatios[SDL_min(m_FsrMode, 3)];
+            ret = snprintf(&output[offset], length - offset,
+                           "FSR: %s (%s)\n"
+                           "FSR stream/estimated target: %dx%d -> %dx%d (%.2fx)\n",
+                           (m_FsrMode == 1 ? "Quality" : m_FsrMode == 2 ? "Balanced" : "Performance"),
+                           m_FrontendRenderer && m_FrontendRenderer->getRendererType() == IFFmpegRenderer::RendererType::Vulkan ? "Vulkan configured" : "Vulkan hook unavailable",
+                           m_VideoDecoderCtx ? m_VideoDecoderCtx->width : m_OriginalVideoWidth,
+                           m_VideoDecoderCtx ? m_VideoDecoderCtx->height : m_OriginalVideoHeight,
+                           int((m_VideoDecoderCtx ? m_VideoDecoderCtx->width : m_OriginalVideoWidth) * ratio),
+                           int((m_VideoDecoderCtx ? m_VideoDecoderCtx->height : m_OriginalVideoHeight) * ratio), ratio);
+            if (ret < 0 || ret >= length - offset) { SDL_assert(false); return; }
+            offset += ret;
+        }
+
         ret = snprintf(&output[offset],
                        length - offset,
                        "Incoming frame rate from network: %.2f FPS\n"
@@ -1002,7 +1027,7 @@ void FFmpegVideoDecoder::stringifyVideoStats(VIDEO_STATS& stats, char* output, i
 void FFmpegVideoDecoder::logVideoStats(VIDEO_STATS& stats, const char* title)
 {
     if (stats.renderedFps > 0 || stats.renderedFrames != 0) {
-        char videoStatsStr[512];
+        char videoStatsStr[2048];
         stringifyVideoStats(stats, videoStatsStr, sizeof(videoStatsStr));
 
         SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
@@ -1649,6 +1674,13 @@ bool FFmpegVideoDecoder::tryInitializeNonHwAccelDecoder(PDECODER_PARAMETERS para
 
 bool FFmpegVideoDecoder::initialize(PDECODER_PARAMETERS params)
 {
+    if (!params->testOnly) {
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "FFmpeg compiled hardware APIs (availability requires device probing):");
+        for (AVHWDeviceType type = AV_HWDEVICE_TYPE_NONE; (type = av_hwdevice_iterate_types(type)) != AV_HWDEVICE_TYPE_NONE;) {
+            SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "  %s", av_hwdevice_get_type_name(type));
+        }
+    }
+
     // Increase log level until the first frame is decoded
     av_log_set_level(AV_LOG_DEBUG);
 
@@ -2149,7 +2181,7 @@ int FFmpegVideoDecoder::submitDecodeUnit(PDECODE_UNIT du)
             addVideoStats(m_LastWndVideoStats, lastTwoWndStats);
             addVideoStats(m_ActiveWndVideoStats, lastTwoWndStats);
 
-            char statistics[1024] = {};
+            char statistics[2048] = {};
             stringifyVideoStats(lastTwoWndStats, statistics, sizeof(statistics));
             Session::get()->getOverlayManager().updateStatistics(statistics);
         }

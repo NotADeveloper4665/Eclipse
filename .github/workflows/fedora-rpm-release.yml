@@ -1,6 +1,8 @@
 name: Build Fedora RPM
 
 on:
+  push:
+    branches: [main]
   release:
     types: [published]
 
@@ -47,7 +49,16 @@ jobs:
           mkdir -p deliverables
           cp "Eclipse-source-${VERSION}.zip" "deliverables/Eclipse-source-${VERSION}.zip"
 
+      - name: Save RPM and source artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Eclipse-Fedora-44
+          path: |
+            rpmbuild/RPMS/x86_64/*.rpm
+            deliverables/*.zip
+
       - name: Attach RPM and source to the release
+        if: github.event_name == 'release'
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload "${GITHUB_REF_NAME}" rpmbuild/RPMS/x86_64/*.rpm "deliverables/Eclipse-source-${VERSION}.zip" --repo "${GITHUB_REPOSITORY}"

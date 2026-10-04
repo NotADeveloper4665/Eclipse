@@ -17,7 +17,7 @@ Column {
         }
         return choices
     }
-    Label { text: row.title; font.bold: true }
+    Label { width: parent.width; text: row.title; font.pointSize: 12; font.bold: true; wrapMode: Text.Wrap }
     ComboBox {
         id: picker
         width: parent.width

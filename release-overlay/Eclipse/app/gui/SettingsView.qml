@@ -101,22 +101,41 @@ Flickable {
         spacing: 15
 
         GroupBox {
-            width: parent.width - parent.leftPadding - parent.rightPadding
-            title: qsTr("Client FSR scaling")
+            id: clientScalingGroupBox
+            width: parent.width - (parent.leftPadding + parent.rightPadding)
+            padding: 12
+            title: "<font color=\"skyblue\">" + qsTr("Client FSR scaling") + "</font>"
+            font.pointSize: 12
             Column {
-                width: parent.width
-                spacing: 8
-                ComboBox {
+                anchors.fill: parent
+                spacing: 5
+                Label {
                     width: parent.width
+                    text: qsTr("FSR preset")
+                    font.pointSize: 12
+                    wrapMode: Text.Wrap
+                }
+                AutoResizingComboBox {
+                    id: fsrPresetSelector
                     objectName: "fsrPresetSelector"
-                    model: [qsTr("Off"), qsTr("Quality — 1.5×"), qsTr("Balanced — 1.7×"), qsTr("Performance — 2×")]
-                    currentIndex: StreamingPreferences.fsrMode
-                    onActivated: StreamingPreferences.fsrMode = currentIndex
+                    width: parent.width
+                    textRole: "text"
+                    model: ListModel {
+                        ListElement { text: qsTr("Off (native resolution)"); val: 0 }
+                        ListElement { text: qsTr("Quality (1.5×)"); val: 1 }
+                        ListElement { text: qsTr("Balanced (1.7×)"); val: 2 }
+                        ListElement { text: qsTr("Performance (2×)"); val: 3 }
+                    }
+                    Component.onCompleted: {
+                        currentIndex = StreamingPreferences.fsrMode
+                    }
+                    onActivated: StreamingPreferences.fsrMode = model.get(currentIndex).val
                 }
                 Label {
                     width: parent.width
-                    wrapMode: Text.WordWrap
-                    text: qsTr("Choose your output resolution below. FSR requests a smaller stream and scales it on this GPU. Requires Vulkan, SDR, and 4:2:0 video. Applies to the next stream.")
+                    text: qsTr("FSR scales the stream on this client GPU. It requires Vulkan, SDR, and 4:2:0 video; the setting applies to the next stream.")
+                    font.pointSize: 10
+                    wrapMode: Text.Wrap
                 }
             }
         }
@@ -125,8 +144,11 @@ Flickable {
             id: deviceForwardingGroup
             property bool expanded: false
             width: parent.width - parent.leftPadding - parent.rightPadding
-            title: qsTr("Microphone, webcam, and USB forwarding")
+            padding: 12
+            title: "<font color=\"skyblue\">" + qsTr("Microphone, webcam, and USB forwarding") + "</font>"
+            font.pointSize: 12
             Column {
+                anchors.fill: parent
                 width: parent.width
                 spacing: 10
                 Label {
