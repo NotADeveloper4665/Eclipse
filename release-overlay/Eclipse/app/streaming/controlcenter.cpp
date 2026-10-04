@@ -37,7 +37,8 @@ void ControlCenter::setBitrateFromPoint(const QPointF& point)
     if (m_BitrateSliderRect.width() <= 0) return;
     const qreal ratio = std::max<qreal>(0,std::min<qreal>(1,
         (point.x()-(m_BitrateSliderRect.left()+1))/(m_BitrateSliderRect.width()-2)));
-    m_Bitrate = std::max(1000,std::min(150000,static_cast<int>(std::lround(1000+ratio*149000))));
+    const int selectedKbps = static_cast<int>(std::lround((1000+ratio*149000)/1000.0))*1000;
+    m_Bitrate = std::max(1000,std::min(150000,selectedKbps));
     m_Dirty = true;
 }
 
