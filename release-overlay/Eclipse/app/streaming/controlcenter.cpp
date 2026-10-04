@@ -71,11 +71,11 @@ QImage ControlCenter::render(QSize pixels, bool muted, bool fullscreen, const QS
         m_Targets.append({r, label, std::move(fn)});
         card(r, QColor("#424242"));
         if (selected) {
-            painter.setPen(Qt::NoPen); painter.setBrush(QColor("#9FA8DA"));
+            painter.setPen(Qt::NoPen); painter.setBrush(QColor("#BB86FC"));
             painter.drawRoundedRect(QRectF(r.x(),r.y()+5,3,r.height()-10),2,2);
         }
         if (index == m_Focus && m_Focus >= 0) {
-            painter.setBrush(Qt::NoBrush); painter.setPen(QPen(QColor("#9FA8DA"), 2));
+            painter.setBrush(Qt::NoBrush); painter.setPen(QPen(QColor("#BB86FC"), 2));
             painter.drawRoundedRect(r.adjusted(1,1,-1,-1), 4, 4);
         }
         text(r.adjusted(14,0,-8,0), label, 13);
@@ -93,7 +93,7 @@ QImage ControlCenter::render(QSize pixels, bool muted, bool fullscreen, const QS
         }, i == m_Page);
     }
     text({24,555,172,25}, "Sunshine compatible", 11, QColor("#BDBDBD"));
-    text({24,582,175,25}, "Alt + Super + O", 12, QColor("#9FA8DA"));
+    text({24,582,175,25}, "Alt + Super + O", 12, QColor("#BB86FC"));
     button({227,20,126,38}, fullscreen ? "Windowed" : "Fullscreen", [this](int){ action(Fullscreen); });
     button({363,20,141,38}, "Release cursor", [this](int){ action(ReleaseMouse); });
     button({514,20,123,38}, muted ? "Unmute audio" : "Mute audio", [this](int){ action(Mute); });
@@ -124,7 +124,7 @@ QImage ControlCenter::render(QSize pixels, bool muted, bool fullscreen, const QS
         }});
         card(selector,QColor("#424242"));
         if (index == m_Focus && m_Focus >= 0) {
-            painter.setBrush(Qt::NoBrush); painter.setPen(QPen(QColor("#9FA8DA"),2));
+            painter.setBrush(Qt::NoBrush); painter.setPen(QPen(QColor("#BB86FC"),2));
             painter.drawRoundedRect(selector.adjusted(1,1,-1,-1),4,4);
         }
         text(selector.adjusted(14,0,-38,0),value,13);
@@ -208,7 +208,7 @@ QImage ControlCenter::render(QSize pixels, bool muted, bool fullscreen, const QS
         painter.setPen(Qt::NoPen);
         painter.setBrush(QColor("#555555"));
         painter.drawRoundedRect(bitrateTrack,3,3);
-        painter.setBrush(QColor("#9FA8DA"));
+        painter.setBrush(QColor("#BB86FC"));
         painter.drawRoundedRect(QRectF(bitrateTrack.x(),bitrateTrack.y(),bitrateTrack.width()*bitrateRatio,bitrateTrack.height()),3,3);
         painter.drawEllipse(QPointF(bitrateTrack.x()+bitrateTrack.width()*bitrateRatio,bitrateTrack.center().y()),9,9);
         const int sliderIndex = m_Targets.size();
@@ -218,7 +218,7 @@ QImage ControlCenter::render(QSize pixels, bool muted, bool fullscreen, const QS
         }});
         if (sliderIndex == m_Focus && m_Focus >= 0) {
             painter.setBrush(Qt::NoBrush);
-            painter.setPen(QPen(QColor("#9FA8DA"),2));
+            painter.setPen(QPen(QColor("#BB86FC"),2));
             painter.drawRoundedRect(m_BitrateSliderRect.adjusted(1,1,-1,-1),5,5);
         }
         text({239,289,500,74}, "1 - 150 Mbps. Drag the slider or use Left/Right.\nReconnect to apply the new limit.", 13, QColor("#BDBDBD"));
@@ -231,9 +231,9 @@ QImage ControlCenter::render(QSize pixels, bool muted, bool fullscreen, const QS
         for (int i=0;i<m_DropdownOptionRects.size();++i) {
             const QRectF optionRect=m_DropdownOptionRects[i];
             if (i == m_DropdownSelection) {
-                painter.setPen(Qt::NoPen); painter.setBrush(QColor("#9FA8DA"));
+                painter.setPen(Qt::NoPen); painter.setBrush(QColor("#BB86FC"));
                 painter.drawRoundedRect(QRectF(optionRect.x()+3,optionRect.y()+3,3,optionRect.height()-6),2,2);
-                painter.setPen(QPen(QColor("#9FA8DA"),1)); painter.setBrush(Qt::NoBrush);
+                painter.setPen(QPen(QColor("#BB86FC"),1)); painter.setBrush(Qt::NoBrush);
                 painter.drawRoundedRect(optionRect.adjusted(1,1,-1,-1),3,3);
             }
             text(optionRect.adjusted(13,0,-8,0),m_DropdownItems.value(i),13);
@@ -251,7 +251,7 @@ QImage ControlCenter::render(QSize pixels, bool muted, bool fullscreen, const QS
         auto match = QRegularExpression(pattern).match(statistics);
         QString value = match.hasMatch() ? match.captured(1) + suffix : "Waiting for data";
         text({798,qreal(y),245,24}, label, 12, QColor("#BDBDBD"));
-        text({798,qreal(y+26),245,37}, value, 20, QColor("#9FA8DA"));
+        text({798,qreal(y+26),245,37}, value, 20, QColor("#BB86FC"));
         auto& history = m_History[metricIndex++];
         if (newStatistics && match.hasMatch()) {
             history.append(match.captured(1).toDouble());
@@ -263,7 +263,7 @@ QImage ControlCenter::render(QSize pixels, bool muted, bool fullscreen, const QS
             for (int i=0; i<history.size(); ++i) {
                 points.append({949 + 91.0*i/(history.size()-1), y+60.0 - 24*history[i]/peak});
             }
-            painter.setPen(QPen(QColor("#9FA8DA"),1.5));
+            painter.setPen(QPen(QColor("#BB86FC"),1.5));
             painter.drawPolyline(points);
         }
         painter.setPen(QColor("#383846")); painter.drawLine(798,y+74,1041,y+74);
