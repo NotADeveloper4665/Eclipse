@@ -220,7 +220,7 @@ QImage ControlCenter::render(QSize pixels, bool muted, bool fullscreen, const QS
             painter.setPen(QPen(QColor("#9FA8DA"),2));
             painter.drawRoundedRect(m_BitrateSliderRect.adjusted(1,1,-1,-1),5,5);
         }
-        text({239,289,500,74}, "1 - 150 Mbps. Drag the slider or use Left/Right.\\nReconnect to apply the new limit.", 13, QColor("#BDBDBD"));
+        text({239,289,500,74}, "1 - 150 Mbps. Drag the slider or use Left/Right.\nReconnect to apply the new limit.", 13, QColor("#BDBDBD"));
     }
     else {
         text({239,170,500,260}, "OPEN QUICK MENU\nAlt + Super / Command + O\nCtrl + Alt + Shift + O\nController: hold Back, press Start\n\nNAVIGATION\nTab / Shift + Tab or D-pad\nEnter / A selects; arrows change values\nEscape / B returns to your stream", 14);
