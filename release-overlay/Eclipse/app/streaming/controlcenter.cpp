@@ -55,16 +55,17 @@ QImage ControlCenter::render(QSize pixels, bool muted, bool fullscreen, const QS
     };
     m_Targets.clear();
     m_DropdownOptionRects.clear();
+    m_BitrateSliderRect = QRectF();
     auto button = [&](QRectF r, QString label, std::function<void(int)> fn, bool selected = false) {
         int index = m_Targets.size();
         m_Targets.append({r, label, std::move(fn)});
         card(r, QColor("#424242"));
         if (selected) {
-            painter.setPen(Qt::NoPen); painter.setBrush(QColor("#F48FB1"));
+            painter.setPen(Qt::NoPen); painter.setBrush(QColor("#9FA8DA"));
             painter.drawRoundedRect(QRectF(r.x(),r.y()+5,3,r.height()-10),2,2);
         }
         if (index == m_Focus && m_Focus >= 0) {
-            painter.setBrush(Qt::NoBrush); painter.setPen(QPen(QColor("#F48FB1"), 2));
+            painter.setBrush(Qt::NoBrush); painter.setPen(QPen(QColor("#9FA8DA"), 2));
             painter.drawRoundedRect(r.adjusted(1,1,-1,-1), 4, 4);
         }
         text(r.adjusted(14,0,-8,0), label, 13);
@@ -73,7 +74,7 @@ QImage ControlCenter::render(QSize pixels, bool muted, bool fullscreen, const QS
     // Its default dark Material primary/accent shades are indigo and pink.
     card({0,0,1080,640}, QColor("#303030"));
     card({0,0,205,640}, QColor("#363636"));
-    text({24,20,170,35}, "ECLIPSE", 24);
+    text({24,20,170,35}, "Eclipse", 24);
     text({24,56,170,24}, "QUICK MENU", 11, QColor("#BDBDBD"));
     const QStringList pages = {"General", "Video & Display", "Audio", "Controllers & Input", "Network", "Help"};
     for (int i = 0; i < pages.size(); ++i) {
@@ -113,7 +114,7 @@ QImage ControlCenter::render(QSize pixels, bool muted, bool fullscreen, const QS
         }});
         card(selector,QColor("#424242"));
         if (index == m_Focus && m_Focus >= 0) {
-            painter.setBrush(Qt::NoBrush); painter.setPen(QPen(QColor("#F48FB1"),2));
+            painter.setBrush(Qt::NoBrush); painter.setPen(QPen(QColor("#9FA8DA"),2));
             painter.drawRoundedRect(selector.adjusted(1,1,-1,-1),4,4);
         }
         text(selector.adjusted(14,0,-38,0),value,13);
@@ -204,9 +205,9 @@ QImage ControlCenter::render(QSize pixels, bool muted, bool fullscreen, const QS
         for (int i=0;i<m_DropdownOptionRects.size();++i) {
             const QRectF optionRect=m_DropdownOptionRects[i];
             if (i == m_DropdownSelection) {
-                painter.setPen(Qt::NoPen); painter.setBrush(QColor("#F48FB1"));
+                painter.setPen(Qt::NoPen); painter.setBrush(QColor("#9FA8DA"));
                 painter.drawRoundedRect(QRectF(optionRect.x()+3,optionRect.y()+3,3,optionRect.height()-6),2,2);
-                painter.setPen(QPen(QColor("#F48FB1"),1)); painter.setBrush(Qt::NoBrush);
+                painter.setPen(QPen(QColor("#9FA8DA"),1)); painter.setBrush(Qt::NoBrush);
                 painter.drawRoundedRect(optionRect.adjusted(1,1,-1,-1),3,3);
             }
             text(optionRect.adjusted(13,0,-8,0),m_DropdownItems.value(i),13);
@@ -236,7 +237,7 @@ QImage ControlCenter::render(QSize pixels, bool muted, bool fullscreen, const QS
             for (int i=0; i<history.size(); ++i) {
                 points.append({949 + 91.0*i/(history.size()-1), y+60.0 - 24*history[i]/peak});
             }
-            painter.setPen(QPen(QColor("#F48FB1"),1.5));
+            painter.setPen(QPen(QColor("#9FA8DA"),1.5));
             painter.drawPolyline(points);
         }
         painter.setPen(QColor("#383846")); painter.drawLine(798,y+74,1041,y+74);
@@ -327,18 +328,41 @@ bool ControlCenter::handleEvent(const SDL_Event& e, QSize windowSize)
         }
         return true;
     }
+    auto mapMousePoint = [&](int x, int y) {
+        QPointF pixelPoint(x * qreal(m_Pixels.width()) / std::max(1,windowSize.width()),
+                           y * qreal(m_Pixels.height()) / std::max(1,windowSize.height()));
+        return (pixelPoint - m_Origin) / m_Scale;
+    };
     QPointF point;
     bool click = false;
     if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT) {
-        point = {e.button.x * qreal(m_Pixels.width()) / std::max(1,windowSize.width()),
-                 e.button.y * qreal(m_Pixels.height()) / std::max(1,windowSize.height())};
+        point = mapMousePoint(e.button.x,e.button.y);
         click = true;
     }
     else if (e.type == SDL_FINGERDOWN) {
-        point = {e.tfinger.x*m_Pixels.width(), e.tfinger.y*m_Pixels.height()}; click = true;
+        point = (QPointF(e.tfinger.x*m_Pixels.width(),e.tfinger.y*m_Pixels.height())-m_Origin)/m_Scale;
+        click = true;
+    }
+    else if (e.type == SDL_MOUSEMOTION && m_DraggingBitrate) {
+        setBitrateFromPoint(mapMousePoint(e.motion.x,e.motion.y));
+    }
+    else if (e.type == SDL_MOUSEBUTTONUP && m_DraggingBitrate) {
+        setBitrateFromPoint(mapMousePoint(e.button.x,e.button.y));
+        m_DraggingBitrate = false;
+    }
+    else if (e.type == SDL_FINGERMOTION && m_DraggingBitrate) {
+        setBitrateFromPoint((QPointF(e.tfinger.x*m_Pixels.width(),e.tfinger.y*m_Pixels.height())-m_Origin)/m_Scale);
+    }
+    else if (e.type == SDL_FINGERUP && m_DraggingBitrate) {
+        setBitrateFromPoint((QPointF(e.tfinger.x*m_Pixels.width(),e.tfinger.y*m_Pixels.height())-m_Origin)/m_Scale);
+        m_DraggingBitrate = false;
     }
     if (click) {
-        point = (point - m_Origin)/m_Scale;
+        if (m_BitrateSliderRect.contains(point)) {
+            m_DraggingBitrate = true;
+            setBitrateFromPoint(point);
+            return true;
+        }
         if (m_OpenDropdown != NoDropdown) {
             if (m_DropdownSelectorRect.contains(point)) {
                 m_OpenDropdown = NoDropdown; m_DropdownApply = {};
