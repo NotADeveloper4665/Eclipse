@@ -1,0 +1,66 @@
+name: Source and interaction checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install development and test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential unzip qtbase5-dev qtdeclarative5-dev libqt5svg5-dev qtquickcontrols2-5-dev \
+            qml-module-qtquick2 qml-module-qtquick-controls2 qml-module-qtquick-layouts qml-module-qtquick-window2 qml-module-qtgraphicaleffects \
+            libssl-dev libsdl2-dev libsdl2-ttf-dev libavcodec-dev libavutil-dev libswscale-dev libva-dev libvdpau-dev libopus-dev \
+            libpulse-dev libasound2-dev libdrm-dev libegl1-mesa-dev libwayland-dev libplacebo-dev libvulkan-dev mesa-vulkan-drivers ffmpeg
+      - name: Assemble complete source and parse QML
+        run: |
+          unzip -q Eclipse-source.zip -d source
+          cp -a release-overlay/Eclipse/. source/Eclipse/
+          qmllint source/Eclipse/app/gui/SettingsView.qml source/Eclipse/app/gui/DeviceForwarding.qml source/Eclipse/app/gui/MediaForwarding.qml
+          if rg -n '^\[.*truncat|^Warning: truncated output|^Total output lines:' source/Eclipse/app --glob '*.{cpp,h,qml}'; then exit 1; fi
+      - name: Build the client
+        run: |
+          mkdir build
+          cd build
+          qmake ../source/Eclipse/moonlight-qt.pro CONFIG+=release CONFIG-=debug_and_release
+          make -j2
+      - name: Settings route and control runtime check
+        env:
+          QT_QPA_PLATFORM: offscreen
+          QT_QUICK_BACKEND: software
+          QML_DISABLE_DISK_CACHE: "1"
+        run: |
+          cd build/app
+          qmake ../../source/Eclipse/app/app.pro CONFIG+=release CONFIG-=debug_and_release CONFIG+=eclipse-ui-test
+          # qmake does not invalidate already-built objects when only a define changes.
+          touch ../../source/Eclipse/app/main.cpp
+          make -j2
+          export XDG_CONFIG_HOME="$(mktemp -d)"
+          timeout 60s ./moonlight > ui-test.log 2>&1
+          cat ui-test.log
+          rg 'Eclipse settings runtime test passed' ui-test.log
+      - name: Control-center and forwarding lifecycle checks
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          mkdir build-controls build-forwarding
+          cd build-controls
+          qmake ../source/Eclipse/tests/controlcenter.pro
+          make -j2
+          ./controlcenter-test
+          cd ../build-forwarding
+          qmake ../source/Eclipse/tests/passthrough.pro
+          make -j2
+          ./passthrough-test
+      - name: Actual FSR shader rendering and resize check
+        run: |
+          g++ -std=c++17 source/Eclipse/tests/fsr_smoke.cpp -o fsr-smoke $(pkg-config --cflags --libs libplacebo)
+          export VK_ICD_FILENAMES="$(find /usr/share/vulkan/icd.d -name 'lvp_icd*.json' -print -quit)"
+          test -n "$VK_ICD_FILENAMES"
+          ./fsr-smoke source/Eclipse/app/res/fsr.glsl

@@ -124,6 +124,10 @@ public:
     };
     Q_ENUM(CaptureSysKeysMode);
 
+    // 0=off, 1=quality (1.5x), 2=balanced (1.7x), 3=performance (2x).
+    Q_PROPERTY(int fsrMode MEMBER fsrMode NOTIFY fsrModeChanged)
+    int fsrMode = 0;
+
     Q_PROPERTY(int width MEMBER width NOTIFY displayModeChanged)
     Q_PROPERTY(int height MEMBER height NOTIFY displayModeChanged)
     Q_PROPERTY(int fps MEMBER fps NOTIFY displayModeChanged)
@@ -207,6 +211,7 @@ public:
     RendererSelection rendererSelection;
 
 signals:
+    void fsrModeChanged();
     void displayModeChanged();
     void bitrateChanged();
     void unlockBitrateChanged();

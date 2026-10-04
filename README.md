@@ -1,23 +1,19 @@
 # Eclipse
 
-Eclipse is a Moonlight desktop client variant with a dedicated control center for host connection, display, streaming, audio, and input settings. Its UI follows Moonlight's existing dark Material theme.
+Eclipse is a Moonlight desktop streaming client with an in-session control center, Tailscale discovery, per-PC stream profiles, and decoder diagnostics. It retains Moonlight's license and upstream notices.
 
-## Latest release
+## Development toward 0.04
 
-**Eclipse 0.03.5** fixes the main application settings page failing to load due to invalid text at the start of `SettingsView.qml`. It includes the Qt QML disk-cache startup workaround and the dropdown selectors.
+The current source adds built-in client FSR 1 presets, Linux microphone and webcam forwarding through SSH, and USB/IP device export to Linux hosts. FSR is off by default. Device forwarding requires explicit selection and host setup; Windows/Shadow receivers are not implemented. See [setup, implementation, and limits](release-overlay/Eclipse/ECLIPSE-DEVICES.md).
 
-[Download Eclipse 0.03.5 for Fedora 44 x86_64](https://github.com/NotADeveloper4665/Eclipse/releases/tag/eclipse-0.03.5). The release includes the RPM and the full source archive.
+The settings layout now stacks columns in small windows, wraps forwarding buttons, and collapses device controls by default. A dead build option referencing an absent settings test has been replaced by a working UI integration test mode.
 
-Eclipse 0.03 added per-PC streaming profiles, stream diagnostics, and clearer Tailscale status handling. The [Eclipse 0.03 release](https://github.com/NotADeveloper4665/Eclipse/releases/tag/eclipse-0.03) and [Eclipse 0.02 release](https://github.com/NotADeveloper4665/Eclipse/releases/tag/eclipse-0.02.1) remain available.
+## Releases
 
-## Source and builds
+The existing [0.03.9 release](https://github.com/NotADeveloper4665/Eclipse/releases/tag/eclipse-0.03.9) predates these development changes. No RPM or release tag for this new work has been published.
 
-The full Eclipse 0.03.5 source archive is attached to its release. Extract it and open `Eclipse/moonlight-qt.pro` in Qt Creator, or follow `Eclipse/ECLIPSE.md` for build notes.
+## Source and checks
 
-The source is based on Moonlight Qt and retains its license and upstream notices. See `Eclipse/LICENSE` and `Eclipse/README.md`.
+Extract `Eclipse-source.zip` and copy `release-overlay/Eclipse/.` over the extracted `Eclipse/` tree. Open `moonlight-qt.pro` in Qt Creator or use qmake. The release workflow assembles the same source. `packaging/` contains the Fedora spec; `.github/workflows/` contains source checks and release packaging.
 
-The RPM build specification and release workflow are in `packaging/` and `.github/workflows/`.
-
-## Validation
-
-The in-session quick menu dropdown interactions are covered by the focused control-center test suite. See `Eclipse/ECLIPSE-VALIDATION.md` for platform limitations and other verification details.
+Focused control-center, forwarding, QML runtime, and Vulkan shader tests are included in the assembled `tests/` directory. See [validation notes](release-overlay/Eclipse/ECLIPSE-VALIDATION.md).

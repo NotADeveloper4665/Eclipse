@@ -136,6 +136,7 @@ void StreamingPreferences::saveHostStreamProfile(const QString& hostUuid)
     QSettings settings;
     settings.beginGroup(SER_HOST_STREAM_PROFILES);
     settings.beginGroup(hostUuid);
+    settings.setValue("fsrMode", globalPreferences->fsrMode);
     settings.setValue(SER_WIDTH, globalPreferences->width);
     settings.setValue(SER_HEIGHT, globalPreferences->height);
     settings.setValue(SER_FPS, globalPreferences->fps);
@@ -163,6 +164,7 @@ void StreamingPreferences::applyHostStreamProfile(const QString& hostUuid)
     QSettings settings;
     settings.beginGroup(SER_HOST_STREAM_PROFILES);
     settings.beginGroup(hostUuid);
+    fsrMode = qBound(0, settings.value("fsrMode", fsrMode).toInt(), 3);
     width = settings.value(SER_WIDTH, width).toInt();
     height = settings.value(SER_HEIGHT, height).toInt();
     fps = settings.value(SER_FPS, fps).toInt();
@@ -190,6 +192,7 @@ void StreamingPreferences::reload()
     }
 #endif
 
+    fsrMode = qBound(0, settings.value("fsrMode", 0).toInt(), 3);
     width = settings.value(SER_WIDTH, 1280).toInt();
     height = settings.value(SER_HEIGHT, 720).toInt();
     fps = settings.value(SER_FPS, 60).toInt();
@@ -395,6 +398,7 @@ void StreamingPreferences::save()
         QSettings profile;
         profile.beginGroup(SER_HOST_STREAM_PROFILES);
         profile.beginGroup(m_HostUuid);
+        profile.setValue("fsrMode", fsrMode);
         profile.setValue(SER_WIDTH, width);
         profile.setValue(SER_HEIGHT, height);
         profile.setValue(SER_FPS, fps);
@@ -418,6 +422,7 @@ void StreamingPreferences::save()
 
     QSettings settings;
 
+    settings.setValue("fsrMode", fsrMode);
     settings.setValue(SER_WIDTH, width);
     settings.setValue(SER_HEIGHT, height);
     settings.setValue(SER_FPS, fps);

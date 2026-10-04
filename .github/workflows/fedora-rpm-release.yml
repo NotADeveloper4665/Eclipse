@@ -31,7 +31,7 @@ jobs:
                 qt5-qtbase-devel qt5-qtdeclarative-devel qt5-qtsvg-devel \
                 qt5-qtquickcontrols2-devel openssl-devel SDL2-devel SDL2_ttf-devel \
                 ffmpeg-devel libva-devel libvdpau-devel opus-devel \
-                pulseaudio-libs-devel alsa-lib-devel libdrm-devel
+                pulseaudio-libs-devel alsa-lib-devel libdrm-devel libplacebo-devel vulkan-loader-devel
               mkdir -p /work/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
               mkdir -p /tmp/eclipse-source
               unzip -q /work/Eclipse-source.zip -d /tmp/eclipse-source

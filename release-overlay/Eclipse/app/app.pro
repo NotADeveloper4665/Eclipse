@@ -584,11 +584,13 @@ macx {
 }
 
 VERSION = "$$cat(version.txt)"
-eclipse-settings-test {
-    TARGET = eclipse-settings-test
-    SOURCES -= main.cpp
-    SOURCES += $$PWD/../tests/settings_test.cpp
-    CONFIG -= debug_and_release app_bundle
-    CONFIG += console
-}
+
 DEFINES += VERSION_STR=\\\"$$cat(version.txt)\\\"
+
+HEADERS += backend/devicepassthrough.h
+SOURCES += backend/devicepassthrough.cpp
+HEADERS += backend/mediapassthrough.h
+SOURCES += backend/mediapassthrough.cpp
+
+# Build-only integration mode; excluded from shipping binaries.
+eclipse-ui-test: DEFINES += ECLIPSE_UI_TEST

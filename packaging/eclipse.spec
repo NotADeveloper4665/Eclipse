@@ -1,5 +1,5 @@
 Name:           moonlight-eclipse
-Version:        0.03.9
+Version:        0.04
 Release:        1%{?dist}
 Summary:        Moonlight streaming client with the Eclipse control center
 License:        GPL-3.0-only
@@ -24,11 +24,18 @@ BuildRequires:  opus-devel
 BuildRequires:  pulseaudio-libs-devel
 BuildRequires:  alsa-lib-devel
 BuildRequires:  libdrm-devel
+BuildRequires:  libplacebo-devel
+BuildRequires:  vulkan-loader-devel
 
 Requires:       qt5-qtdeclarative
 Requires:       qt5-qtquickcontrols2
 Requires:       qt5-qtsvg
 Recommends:     libva-intel-media-driver
+Recommends:     openssh-clients
+Recommends:     usbip
+Recommends:     polkit
+Recommends:     ffmpeg
+Recommends:     pulseaudio-utils
 
 %description
 Eclipse is a Moonlight desktop streaming client with an in-session control
@@ -49,7 +56,7 @@ install -Dpm0644 app/res/moonlight.svg \
 
 %files
 %license LICENSE
-%doc README.md ECLIPSE.md ECLIPSE-VALIDATION.md
+%doc README.md ECLIPSE.md ECLIPSE-VALIDATION.md ECLIPSE-DEVICES.md
 %{_bindir}/moonlight-eclipse
 %{_datadir}/applications/moonlight-eclipse.desktop
 %{_datadir}/icons/hicolor/scalable/apps/moonlight-eclipse.svg

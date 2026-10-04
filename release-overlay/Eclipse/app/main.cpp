@@ -51,6 +51,8 @@
 #include "backend/autoupdatechecker.h"
 #include "backend/computermanager.h"
 #include "backend/tailscaledevicemodel.h"
+#include "backend/devicepassthrough.h"
+#include "backend/mediapassthrough.h"
 #include "backend/systemproperties.h"
 #include "streaming/session.h"
 #include "settings/streamingpreferences.h"
@@ -1041,6 +1043,21 @@ int main(int argc, char *argv[])
     }
 
     if (hasGUI) {
+        // Device sessions belong to the engine, so navigating away from Settings
+        // to launch a stream does not disconnect a microphone/camera/USB share.
+        for (const QString& name : {QStringLiteral("UsbAudioForwarding"), QStringLiteral("UsbCameraForwarding"), QStringLiteral("UsbDeviceForwarding")}) {
+            auto forwarding = new DevicePassthrough(&engine);
+            engine.rootContext()->setContextProperty(name, forwarding);
+            QObject::connect(&app, &QCoreApplication::aboutToQuit, forwarding, &DevicePassthrough::stop);
+        }
+        auto microphone = new MediaPassthrough(&engine);
+        auto camera = new MediaPassthrough(&engine);
+        camera->setProperty("kind", "camera");
+        engine.rootContext()->setContextProperty("MicrophoneForwarding", microphone);
+        engine.rootContext()->setContextProperty("CameraForwarding", camera);
+        QObject::connect(&app, &QCoreApplication::aboutToQuit, microphone, &MediaPassthrough::stop);
+        QObject::connect(&app, &QCoreApplication::aboutToQuit, camera, &MediaPassthrough::stop);
+
         // Expose the list model as a context object instead of a QML singleton.
         // Qt 5.15 on some Fedora systems crashes in QQmlType compilation when
         // a singleton QAbstractListModel is also used as a ListView model.
@@ -1053,6 +1070,28 @@ int main(int argc, char *argv[])
         engine.load(QUrl(QStringLiteral("qrc:/gui/main.qml")));
         if (engine.rootObjects().isEmpty())
             return -1;
+#ifdef ECLIPSE_UI_TEST
+        QObject* root = engine.rootObjects().first();
+        QTimer::singleShot(0, &engine, [root] {
+            if (!QMetaObject::invokeMethod(root, "openSettingsView")) qFatal("Settings route did not execute");
+        });
+        QTimer::singleShot(1000, &engine, [&app, &engine, root] {
+            const auto pages = root->findChildren<QObject*>(QObject::tr("Settings"));
+            if (pages.size() != 1) qFatal("Settings page failed to instantiate");
+            QObject* selector = root->findChild<QObject*>("fsrPresetSelector");
+            if (!selector) qFatal("FSR selector did not instantiate");
+            selector->setProperty("currentIndex", 3);
+            if (!QMetaObject::invokeMethod(selector, "activated", Q_ARG(int, 3)) || StreamingPreferences::get()->fsrMode != 3)
+                qFatal("FSR selection did not update preferences");
+            StreamingPreferences::get()->fsrMode = 0;
+            if (engine.findChildren<DevicePassthrough*>().size() != 3 || engine.findChildren<MediaPassthrough*>().size() != 2)
+                qFatal("Forwarding controls failed to instantiate");
+            if (!QMetaObject::invokeMethod(root, "openSettingsView") || root->findChildren<QObject*>(QObject::tr("Settings")).size() != 1)
+                qFatal("Duplicate settings route created another page");
+            qInfo() << "Eclipse settings runtime test passed";
+            app.exit(0);
+        });
+#endif
     }
 
     int err = app.exec();

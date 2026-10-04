@@ -16,8 +16,9 @@ Flickable {
 
     boundsBehavior: Flickable.OvershootBounds
 
-    contentWidth: settingsColumn1.width > settingsColumn2.width ? settingsColumn1.width : settingsColumn2.width
-    contentHeight: settingsColumn1.height > settingsColumn2.height ? settingsColumn1.height : settingsColumn2.height
+    property bool compactLayout: width < 900
+    contentWidth: width
+    contentHeight: compactLayout ? settingsColumn2.y + settingsColumn2.height : Math.max(settingsColumn1.height, settingsColumn2.height)
 
     ScrollBar.vertical: ScrollBar {
         anchors {
@@ -96,8 +97,95 @@ Flickable {
     Column {
         padding: 10
         id: settingsColumn1
-        width: settingsPage.width / 2
+        width: settingsPage.compactLayout ? settingsPage.width : settingsPage.width / 2
         spacing: 15
+
+        GroupBox {
+            width: parent.width - parent.leftPadding - parent.rightPadding
+            title: qsTr("Client FSR scaling")
+            Column {
+                width: parent.width
+                spacing: 8
+                ComboBox {
+                    width: parent.width
+                    objectName: "fsrPresetSelector"
+                    model: [qsTr("Off"), qsTr("Quality — 1.5×"), qsTr("Balanced — 1.7×"), qsTr("Performance — 2×")]
+                    currentIndex: StreamingPreferences.fsrMode
+                    onActivated: StreamingPreferences.fsrMode = currentIndex
+                }
+                Label {
+                    width: parent.width
+                    wrapMode: Text.WordWrap
+                    text: qsTr("Choose your output resolution below. FSR requests a smaller stream and scales it on this GPU. Requires Vulkan, SDR, and 4:2:0 video. Applies to the next stream.")
+                }
+            }
+        }
+
+        GroupBox {
+            id: deviceForwardingGroup
+            property bool expanded: false
+            width: parent.width - parent.leftPadding - parent.rightPadding
+            title: qsTr("Microphone, webcam, and USB forwarding")
+            Column {
+                width: parent.width
+                spacing: 10
+                Label {
+                    width: parent.width
+                    wrapMode: Text.WordWrap
+                    text: qsTr("Linux host: enter an SSH alias or user@host with key authentication. Native microphone forwarding uses a virtual host microphone; webcam forwarding requires a host virtual camera. USB/IP shares the physical device and makes it unavailable locally.")
+                }
+                Button {
+                    text: deviceForwardingGroup.expanded ? qsTr("Hide forwarding controls") : qsTr("Show forwarding controls")
+                    onClicked: deviceForwardingGroup.expanded = !deviceForwardingGroup.expanded
+                }
+                Column {
+                    width: parent.width
+                    spacing: 10
+                    visible: deviceForwardingGroup.expanded
+                TextField {
+                    id: forwardingHost
+                    width: parent.width
+                    placeholderText: qsTr("Host SSH alias or user@host")
+                    selectByMouse: true
+                }
+                MediaForwarding {
+                    width: parent.width
+                    title: qsTr("Microphone")
+                    forwarding: MicrophoneForwarding
+                    deviceKind: "microphone"
+                    sshTarget: forwardingHost.text
+                }
+                MediaForwarding {
+                    width: parent.width
+                    title: qsTr("Webcam")
+                    forwarding: CameraForwarding
+                    deviceKind: "camera"
+                    sshTarget: forwardingHost.text
+                }
+                DeviceForwarding {
+                    width: parent.width
+                    title: qsTr("USB microphone / audio device")
+                    forwarding: UsbAudioForwarding
+                    deviceKind: "audio"
+                    sshTarget: forwardingHost.text
+                }
+                DeviceForwarding {
+                    width: parent.width
+                    title: qsTr("USB webcam")
+                    forwarding: UsbCameraForwarding
+                    deviceKind: "camera"
+                    sshTarget: forwardingHost.text
+                }
+                DeviceForwarding {
+                    width: parent.width
+                    title: qsTr("Other USB device")
+                    forwarding: UsbDeviceForwarding
+                    deviceKind: "all"
+                    sshTarget: forwardingHost.text
+                }
+                }
+            }
+        }
 
         GroupBox {
             id: basicSettingsGroupBox
@@ -1331,9 +1419,10 @@ Flickable {
     Column {
         padding: 10
         rightPadding: 20
-        anchors.left: settingsColumn1.right
+        x: settingsPage.compactLayout ? 0 : settingsColumn1.width
+        y: settingsPage.compactLayout ? settingsColumn1.height + 15 : 0
         id: settingsColumn2
-        width: settingsPage.width / 2
+        width: settingsPage.compactLayout ? settingsPage.width : settingsPage.width / 2
         spacing: 15
 
         GroupBox {

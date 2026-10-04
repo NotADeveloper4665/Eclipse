@@ -26,3 +26,8 @@ The implementation is reviewable source, not a fully validated release binary. N
 ## Publication
 
 The full Eclipse source is published in `NotADeveloper4665/Eclipse`, with Moonlight license and upstream copyright notices retained. Fedora RPM builds run from the versioned GitHub release workflow.
+
+
+## FSR and device forwarding development
+
+See `ECLIPSE-DEVICES.md` for implementation, setup, test coverage, and hardware limits. No physical microphone, webcam, or USB transfer is claimed as tested. Native forwarding currently requires Linux on both ends. The development changes do not publish an RPM.

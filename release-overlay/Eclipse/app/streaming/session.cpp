@@ -300,6 +300,7 @@ bool Session::chooseDecoder(StreamingPreferences::VideoDecoderSelection vds,
     params.testOnly = testOnly;
     params.vds = vds;
     params.renderer = renderer;
+    params.fsrMode = s_ActiveSession ? s_ActiveSession->m_Preferences->fsrMode : 0;
 
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
                 "V-sync %s",
@@ -664,6 +665,25 @@ bool Session::initialize(QQuickWindow* qtWindow)
     LiInitializeStreamConfiguration(&m_StreamConfig);
     m_StreamConfig.width = m_Preferences->width;
     m_StreamConfig.height = m_Preferences->height;
+    if (m_Preferences->fsrMode > 0) {
+#ifndef HAVE_LIBPLACEBO_VULKAN
+        emit displayLaunchError(tr("FSR requires a build with Vulkan/libplacebo support."));
+        SDL_QuitSubSystem(SDL_INIT_VIDEO);
+        return false;
+#else
+        if (m_Preferences->enableHdr || m_Preferences->enableYUV444) {
+            emit displayLaunchError(tr("FSR currently requires SDR 4:2:0 video. Disable HDR and YUV 4:4:4, or turn FSR off."));
+            SDL_QuitSubSystem(SDL_INIT_VIDEO);
+            return false;
+        }
+        const double ratios[] = {1.0, 1.5, 1.7, 2.0};
+        const double ratio = ratios[qBound(0, m_Preferences->fsrMode, 3)];
+        m_StreamConfig.width = qMax(2, int(m_StreamConfig.width / ratio) & ~1);
+        m_StreamConfig.height = qMax(2, int(m_StreamConfig.height / ratio) & ~1);
+        qInfo() << "FSR input:" << m_StreamConfig.width << m_StreamConfig.height
+                << "target:" << m_Preferences->width << m_Preferences->height;
+#endif
+    }
 
     int x, y, width, height;
     getWindowDimensions(x, y, width, height);
@@ -1325,6 +1345,10 @@ private:
 void Session::getWindowDimensions(int& x, int& y,
                                   int& width, int& height)
 {
+    // FSR's smaller incoming video must not shrink the output window.
+    const int outputWidth = m_Preferences->fsrMode > 0 ? m_Preferences->width : m_StreamConfig.width;
+    const int outputHeight = m_Preferences->fsrMode > 0 ? m_Preferences->height : m_StreamConfig.height;
+
     int displayIndex = 0;
 
     if (m_Window != nullptr) {
@@ -1373,16 +1397,16 @@ void Session::getWindowDimensions(int& x, int& y,
     SDL_Rect usableBounds;
     if (SDL_GetDisplayUsableBounds(displayIndex, &usableBounds) == 0) {
         // If the stream resolution fits within the usable display area, use it directly
-        if (m_StreamConfig.width <= usableBounds.w &&
-            m_StreamConfig.height <= usableBounds.h) {
-            width = m_StreamConfig.width;
-            height = m_StreamConfig.height;
+        if (outputWidth <= usableBounds.w &&
+            outputHeight <= usableBounds.h) {
+            width = outputWidth;
+            height = outputHeight;
         } else {
             // Otherwise, use 80% of usable bounds and preserve aspect ratio
             SDL_Rect src, dst;
             src.x = src.y = dst.x = dst.y = 0;
-            src.w = m_StreamConfig.width;
-            src.h = m_StreamConfig.height;
+            src.w = outputWidth;
+            src.h = outputHeight;
 
             dst.w = ((int)(usableBounds.w * 0.80f)) & ~0x1;  // even width
             dst.h = ((int)(usableBounds.h * 0.80f)) & ~0x1;  // even height
@@ -1398,8 +1422,8 @@ void Session::getWindowDimensions(int& x, int& y,
                      "SDL_GetDisplayUsableBounds() failed: %s",
                      SDL_GetError());
 
-        width = m_StreamConfig.width;
-        height = m_StreamConfig.height;
+        width = outputWidth;
+        height = outputHeight;
     }
 
     x = y = SDL_WINDOWPOS_CENTERED_DISPLAY(displayIndex);
@@ -1439,6 +1463,9 @@ void Session::updateOptimalWindowDisplayMode()
     if (!Utils::getEnvironmentVariableOverride("MATCH_DISPLAY_MODE_TO_VIDEO", &matchVideo)) {
         matchVideo = WMUtils::isGpuSlow() || QString(SDL_GetCurrentVideoDriver()) == "KMSDRM";
     }
+
+    // Keep display resolution at the target size when FSR handles upscaling.
+    if (m_Preferences->fsrMode > 0) matchVideo = false;
 
     bestMode = desktopMode;
     bestMode.refresh_rate = 0;

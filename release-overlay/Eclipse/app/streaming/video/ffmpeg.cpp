@@ -337,6 +337,26 @@ bool FFmpegVideoDecoder::initializeRendererInternal(IFFmpegRenderer* renderer, P
 
 bool FFmpegVideoDecoder::createFrontendRenderer(PDECODER_PARAMETERS params, bool useAlternateFrontend)
 {
+    // FSR is opt-in and must actually select the renderer implementing it.
+    // Never silently fall back to ordinary scaling after reducing stream size.
+    const int fsrMode = params->fsrMode;
+    if (fsrMode > 0) {
+#ifdef HAVE_LIBPLACEBO_VULKAN
+        if (m_BackendRenderer->getRendererType() == IFFmpegRenderer::RendererType::Vulkan) {
+            m_FrontendRenderer = m_BackendRenderer;
+            return true;
+        }
+        m_FrontendRenderer = new PlVkRenderer(AV_HWDEVICE_TYPE_NONE, m_BackendRenderer);
+        if (initializeRendererInternal(m_FrontendRenderer, params)) {
+            return true;
+        }
+        delete m_FrontendRenderer;
+        m_FrontendRenderer = nullptr;
+#endif
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "FSR Vulkan renderer unavailable; disable FSR to use another renderer");
+        return false;
+    }
+
     bool glIsSlow;
     bool vulkanIsSlow;
 

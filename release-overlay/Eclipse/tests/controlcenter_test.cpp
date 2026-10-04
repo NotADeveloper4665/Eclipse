@@ -140,6 +140,17 @@ int main(int argc, char** argv)
     delete host;
     StreamingPreferences::clearHostStreamProfile("host-a");
     check(StreamingPreferences::createForHost("host-a") == nullptr, "cleared profile uses defaults");
+    prefs->fsrMode = 3;
+    prefs->save();
+    prefs->fsrMode = 0;
+    prefs->reload();
+    check(prefs->fsrMode == 3, "FSR preset persists globally");
+    StreamingPreferences::saveHostStreamProfile("fsr-host");
+    prefs->fsrMode = 0;
+    prefs->save();
+    host = StreamingPreferences::createForHost("fsr-host");
+    check(host && host->fsrMode == 3 && prefs->fsrMode == 0, "FSR preset remains isolated per host");
+    delete host;
     qInfo("PASS: control-center interactions, persistence, input suppression, scaling, and host profile isolation");
     return 0;
 }
