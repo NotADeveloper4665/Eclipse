@@ -1,5 +1,5 @@
 Name:           moonlight-eclipse
-Version:        0.03.6
+Version:        0.03.7
 Release:        1%{?dist}
 Summary:        Moonlight streaming client with the Eclipse control center
 License:        GPL-3.0-only
@@ -55,6 +55,9 @@ install -Dpm0644 app/res/moonlight.svg \
 %{_datadir}/icons/hicolor/scalable/apps/moonlight-eclipse.svg
 
 %changelog
+* Sun Oct 04 2026 Eclipse contributors <eclipse@example.invalid> - 0.03.7-1
+- Restyle the in-session bitrate control as a draggable slider and update the overlay accent and title
+
 * Sat Oct 03 2026 Eclipse contributors <eclipse@example.invalid> - 0.03.6-1
 - Restore missing main Settings page controls and validate QML syntax in release builds
 
