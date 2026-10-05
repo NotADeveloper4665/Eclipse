@@ -519,7 +519,8 @@ bool FFmpegVideoDecoder::completeInitialization(const AVCodec* decoder, enum AVP
     if (testMode != TestMode::TestFrameOnly) {
         m_Pacer = new Pacer(m_FrontendRenderer, &m_ActiveWndVideoStats);
         if (!m_Pacer->initialize(params->window, params->frameRate,
-                                 params->enableFramePacing || (params->enableVsync && (m_FrontendRenderer->getRendererAttributes() & RENDERER_ATTRIBUTE_FORCE_PACING)))) {
+                                 params->enableFramePacing || (params->enableVsync && (m_FrontendRenderer->getRendererAttributes() & RENDERER_ATTRIBUTE_FORCE_PACING)),
+                                 params->minimumLatency)) {
             return false;
         }
     }
@@ -565,7 +566,7 @@ bool FFmpegVideoDecoder::completeInitialization(const AVCodec* decoder, enum AVP
     m_VideoDecoderCtx->pkt_timebase.den = 90000;
 
     // Allocate enough extra frames for Pacer to avoid stalling the decoder
-    m_VideoDecoderCtx->extra_hw_frames = PACER_MAX_OUTSTANDING_FRAMES;
+    m_VideoDecoderCtx->extra_hw_frames = m_Pacer ? m_Pacer->requiredDecoderFrames() : PACER_MAX_OUTSTANDING_FRAMES;
 
     // For non-hwaccel decoders, set the pix_fmt to hint to the decoder which
     // format should be used. This is necessary for certain decoders like the
@@ -1033,6 +1034,46 @@ void FFmpegVideoDecoder::logVideoStats(VIDEO_STATS& stats, const char* title)
         SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
                     "\n%s\n------------------\n%s",
                     title, videoStatsStr);
+    }
+}
+
+void FFmpegVideoDecoder::stringifyVideoStatsCompact(VIDEO_STATS& stats, char* output, int length)
+{
+    if (length <= 0) {
+        return;
+    }
+    const char* codec = "UNKNOWN";
+    switch (m_VideoFormat) {
+    case VIDEO_FORMAT_H264: codec = "H.264"; break;
+    case VIDEO_FORMAT_H264_HIGH8_444: codec = "H.264 4:4:4"; break;
+    case VIDEO_FORMAT_H265: codec = "HEVC"; break;
+    case VIDEO_FORMAT_H265_REXT8_444: codec = "HEVC 4:4:4"; break;
+    case VIDEO_FORMAT_H265_MAIN10: codec = LiGetCurrentHostDisplayHdrMode() ? "HEVC HDR" : "HEVC 10-bit"; break;
+    case VIDEO_FORMAT_H265_REXT10_444: codec = LiGetCurrentHostDisplayHdrMode() ? "HEVC HDR 4:4:4" : "HEVC 10-bit 4:4:4"; break;
+    case VIDEO_FORMAT_AV1_MAIN8: codec = "AV1"; break;
+    case VIDEO_FORMAT_AV1_HIGH8_444: codec = "AV1 4:4:4"; break;
+    case VIDEO_FORMAT_AV1_MAIN10: codec = LiGetCurrentHostDisplayHdrMode() ? "AV1 HDR" : "AV1 10-bit"; break;
+    case VIDEO_FORMAT_AV1_HIGH10_444: codec = LiGetCurrentHostDisplayHdrMode() ? "AV1 HDR 4:4:4" : "AV1 10-bit 4:4:4"; break;
+    default: break;
+    }
+
+    const int width = m_VideoDecoderCtx ? m_VideoDecoderCtx->width : m_OriginalVideoWidth;
+    const int height = m_VideoDecoderCtx ? m_VideoDecoderCtx->height : m_OriginalVideoHeight;
+    const double decodeMs = stats.decodedFrames ? (double)stats.totalDecodeTimeUs / 1000.0 / stats.decodedFrames : 0.0;
+    const double renderMs = stats.renderedFrames ? (double)stats.totalRenderTimeUs / 1000.0 / stats.renderedFrames : 0.0;
+    const double hostMs = stats.framesWithHostProcessingLatency ? (double)stats.totalHostProcessingLatency / 10.0 / stats.framesWithHostProcessingLatency : 0.0;
+    const double lossPct = stats.totalFrames ? (double)stats.networkDroppedFrames * 100.0 / stats.totalFrames : 0.0;
+    const double jitterPct = stats.decodedFrames ? (double)stats.pacerDroppedFrames * 100.0 / stats.decodedFrames : 0.0;
+    const int written = snprintf(output, length,
+                                 "%dx%d  %s  %.0f FPS\n"
+                                 "PING %u ms   DECODE %.1f ms   RENDER %.1f ms\n"
+                                 "HOST %.1f ms   LOSS %.1f%%   JITTER %.1f%%",
+                                 width, height, codec, stats.totalFps,
+                                 stats.lastRtt, decodeMs, renderMs,
+                                 hostMs, lossPct, jitterPct);
+    if (written < 0 || written >= length) {
+        SDL_assert(false);
+        output[length - 1] = '\0';
     }
 }
 
@@ -2181,9 +2222,11 @@ int FFmpegVideoDecoder::submitDecodeUnit(PDECODE_UNIT du)
             addVideoStats(m_LastWndVideoStats, lastTwoWndStats);
             addVideoStats(m_ActiveWndVideoStats, lastTwoWndStats);
 
-            char statistics[2048] = {};
-            stringifyVideoStats(lastTwoWndStats, statistics, sizeof(statistics));
-            Session::get()->getOverlayManager().updateStatistics(statistics);
+            char compactStatistics[384] = {};
+            char detailedStatistics[2048] = {};
+            stringifyVideoStatsCompact(lastTwoWndStats, compactStatistics, sizeof(compactStatistics));
+            stringifyVideoStats(lastTwoWndStats, detailedStatistics, sizeof(detailedStatistics));
+            Session::get()->getOverlayManager().updateStatistics(compactStatistics, detailedStatistics);
         }
 
         // Accumulate these values into the global stats

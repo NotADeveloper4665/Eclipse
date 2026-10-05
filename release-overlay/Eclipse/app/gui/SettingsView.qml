@@ -976,6 +976,31 @@ Flickable {
                         ToolTip.visible: hovered
                         ToolTip.text: qsTr("Frame pacing reduces micro-stutter by delaying frames that come in too early")
                     }
+
+                    Label {
+                        width: parent.width
+                        text: qsTr("Minimum latency: %1 ms").arg(Math.round(minimumLatencySlider.value))
+                        font.pointSize: 12
+                        wrapMode: Text.Wrap
+                    }
+
+                    Label {
+                        width: parent.width
+                        text: qsTr("Buffer frames on a steady schedule to reduce stutter from network or capture-rate jitter. Higher values add display latency.")
+                        font.pointSize: 9
+                        wrapMode: Text.Wrap
+                    }
+
+                    Slider {
+                        id: minimumLatencySlider
+                        width: parent.width
+                        from: 0
+                        to: 50
+                        stepSize: 1
+                        snapMode: Slider.SnapAlways
+                        value: StreamingPreferences.minimumLatency
+                        onValueChanged: StreamingPreferences.minimumLatency = Math.round(value)
+                    }
                 }
 
                 CheckBox {

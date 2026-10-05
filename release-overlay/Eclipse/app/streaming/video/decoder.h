@@ -46,6 +46,7 @@ typedef struct _DECODER_PARAMETERS {
     bool enableFramePacing;
     bool testOnly;
     int fsrMode = 0;
+    int minimumLatency = 0;
 } DECODER_PARAMETERS, *PDECODER_PARAMETERS;
 
 #define WINDOW_STATE_CHANGE_SIZE 0x01

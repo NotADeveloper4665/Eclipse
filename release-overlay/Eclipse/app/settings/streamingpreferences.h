@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QRect>
 #include <QQmlEngine>
+#include <QVariantList>
 
 class StreamingPreferences : public QObject
 {
@@ -12,13 +13,22 @@ public:
     static StreamingPreferences* get(QQmlEngine *qmlEngine = nullptr);
     static StreamingPreferences* createForHost(const QString& hostUuid);
     static bool hasHostStreamProfile(const QString& hostUuid);
-    static void saveHostStreamProfile(const QString& hostUuid);
+    static void saveHostStreamProfile(const QString& hostUuid, const QString& hostName = QString());
+    static void renameHostStreamProfile(const QString& hostUuid, const QString& hostName);
     static void clearHostStreamProfile(const QString& hostUuid);
 
     Q_INVOKABLE static int
     getDefaultBitrate(int width, int height, int fps, bool yuv444);
 
     Q_INVOKABLE void save();
+
+    Q_PROPERTY(QVariantList hostStreamProfiles READ hostStreamProfiles NOTIFY hostStreamProfilesChanged)
+    Q_PROPERTY(QString activeHostStreamProfile READ activeHostStreamProfile WRITE setActiveHostStreamProfile NOTIFY activeHostStreamProfileChanged)
+    Q_PROPERTY(int minimumLatency MEMBER minimumLatency NOTIFY minimumLatencyChanged)
+
+    QVariantList hostStreamProfiles() const;
+    QString activeHostStreamProfile() const;
+    void setActiveHostStreamProfile(const QString& hostUuid);
 
     void reload();
     void applyHostStreamProfile(const QString& hostUuid);
@@ -208,6 +218,7 @@ public:
     UIDisplayMode uiDisplayMode;
     Language language;
     CaptureSysKeysMode captureSysKeysMode;
+    int minimumLatency;
     RendererSelection rendererSelection;
 
 signals:
@@ -247,6 +258,9 @@ signals:
     void captureSysKeysModeChanged();
     void keepAwakeChanged();
     void languageChanged();
+    void hostStreamProfilesChanged();
+    void activeHostStreamProfileChanged();
+    void minimumLatencyChanged();
     void rendererSelectionChanged();
 
 private:

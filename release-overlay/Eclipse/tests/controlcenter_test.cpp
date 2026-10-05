@@ -113,13 +113,18 @@ int main(int argc, char** argv)
     paint().save("eclipse-settings-dropdown-preview.png");
     prefs->width = 1920; prefs->height = 1080; prefs->fps = 60;
     prefs->bitrateKbps = 20000; prefs->audioConfig = StreamingPreferences::AC_STEREO;
+    prefs->minimumLatency = 6;
     prefs->save();
-    StreamingPreferences::saveHostStreamProfile("host-a");
-    StreamingPreferences::saveHostStreamProfile("host-b");
+    StreamingPreferences::saveHostStreamProfile("host-a", "Gaming");
+    StreamingPreferences::saveHostStreamProfile("host-b", "Laptop");
+    check(prefs->hostStreamProfiles().size() == 2 &&
+          prefs->hostStreamProfiles().at(0).toMap().value("name").toString() == "Gaming",
+          "named host profiles appear in the profile selector");
     auto* host = StreamingPreferences::createForHost("host-a");
     check(host != nullptr, "host profile loads");
     host->width = 2560; host->height = 1440; host->fps = 120;
     host->bitrateKbps = 45000; host->audioConfig = StreamingPreferences::AC_51_SURROUND;
+    host->minimumLatency = 12;
     host->videoCodecConfig = StreamingPreferences::VCC_FORCE_HEVC;
     host->save();
     delete host;
@@ -130,10 +135,16 @@ int main(int argc, char** argv)
     check(prefs->videoCodecConfig == StreamingPreferences::VCC_FORCE_HEVC,
           "shared codec preference persists");
     host = StreamingPreferences::createForHost("host-a");
-    check(host->width == 2560 && host->height == 1440 && host->fps == 120 &&
+    check(host->width == 2560 && host->height == 1440 && host->fps == 120 && host->minimumLatency == 12 &&
           host->bitrateKbps == 45000 && host->audioConfig == StreamingPreferences::AC_51_SURROUND,
           "reconnect reloads saved host overrides");
     delete host;
+    prefs->setActiveHostStreamProfile("host-a");
+    host = StreamingPreferences::createForHost("host-b");
+    check(host && host->width == 2560 && host->minimumLatency == 12,
+          "active named profile overrides per-PC settings for new streams");
+    delete host;
+    prefs->setActiveHostStreamProfile(QString());
     host = StreamingPreferences::createForHost("host-b");
     check(host->width == 1920 && host->fps == 60 && host->bitrateKbps == 20000,
           "saving one host preserves other host profiles");
@@ -145,6 +156,7 @@ int main(int argc, char** argv)
     prefs->fsrMode = 0;
     prefs->reload();
     check(prefs->fsrMode == 3, "FSR preset persists globally");
+    check(prefs->minimumLatency == 6, "minimum latency persists globally");
     StreamingPreferences::saveHostStreamProfile("fsr-host");
     prefs->fsrMode = 0;
     prefs->save();

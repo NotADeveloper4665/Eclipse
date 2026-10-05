@@ -1,6 +1,6 @@
 # Client scaling and device forwarding
 
-These features ship in Eclipse 0.4.2. See the project README for release and build links.
+FSR and Linux microphone, webcam, and USB/IP forwarding ship in Eclipse 0.04.1. See `ECLIPSE-STREAMING.md` for 0.4.3 profile, latency, and HUD work.
 
 ## FSR 1 on the client
 

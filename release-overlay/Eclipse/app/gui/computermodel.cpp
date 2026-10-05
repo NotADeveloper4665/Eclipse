@@ -180,6 +180,7 @@ void ComputerModel::renameComputer(int computerIndex, QString name)
     Q_ASSERT(computerIndex < m_Computers.count());
 
     m_ComputerManager->renameHost(m_Computers[computerIndex], name);
+    StreamingPreferences::renameHostStreamProfile(m_Computers[computerIndex]->uuid, name);
 }
 
 void ComputerModel::saveHostStreamProfile(int computerIndex)
@@ -189,7 +190,7 @@ void ComputerModel::saveHostStreamProfile(int computerIndex)
     }
 
     NvComputer* computer = m_Computers[computerIndex];
-    StreamingPreferences::saveHostStreamProfile(computer->uuid);
+    StreamingPreferences::saveHostStreamProfile(computer->uuid, computer->name);
     emit dataChanged(createIndex(computerIndex, 0), createIndex(computerIndex, 0),
                      QVector<int>{HasStreamProfileRole});
 }

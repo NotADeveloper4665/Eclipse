@@ -1,0 +1,5 @@
+YªçŠx-®éÜj×¢ëiºÚ+Š§j[h‘éÜ¢éíï}¢Ö¥¢ëiºÙbë5# Eclipse 0.4.3 streaming controls
+
+## Saved stream profiles
+
+The PC list toolbar adds a profile selector immediately before the Tailscale button. `Per-PC settings` keeps the existing behavior: each machine uses its own saved settings when available, otherwise it uses global settings. Selecting a saved profile applies that profile to new sessions regardless of the destination PC. Existing per-PC profile save/update and clear actions remain availaã}-¢G§²ÚîÆ­y×7BW&f÷&Öæ6R…T@ ¥F†R7G&Â´ÇBµ6†–gBµ2÷fW&Æ’&VæFW'2F‡&VRÆ–æW2–âG&ç6ÇV6VçB&÷VæFVB6&Bv—F‚â66VçB&#¢7G&VÒ&W6öÇWF–öâÂ6öFV2ÂæBe3²–ærÂFV6öFRF–ÖRÂæB&VæFW"F–ÖS²F†Vâ†÷7B&ö6W76–ærF–ÖRÂæWGv÷&²Æ÷72ÂæB6W"G&÷2GG&–'WFVBFò¦—GFW"âF†RfW&&÷6R7FF—7F–72FW‡B&VÖ–ç2f–Æ&ÆRFòÆöw2æBF†R6öçG&öÂÖ6VçFW"7FG26æ6†÷Bâv–æF÷w2W6W26VvöRT’v†Vâ–ç7FÆÆVC²÷F†W"ÆFf÷&×2W6RF†R'VæFÆVBÖöFU6WfVâföçBà

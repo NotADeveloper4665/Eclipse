@@ -329,6 +329,38 @@ ApplicationWindow {
                 }
             }
 
+            ComboBox {
+                id: streamProfileCombo
+                visible: stackView.currentItem instanceof PcView
+                Layout.preferredWidth: 210
+                Layout.maximumWidth: 250
+                ToolTip.visible: hovered
+                ToolTip.text: qsTr("Choose which saved streaming settings profile to use for new sessions")
+
+                textRole: "name"
+                model: [{"uuid": "", "name": qsTr("Per-PC settings")}].concat(StreamingPreferences.hostStreamProfiles)
+
+                function syncSelection() {
+                    var selectedUuid = StreamingPreferences.activeHostStreamProfile
+                    for (var i = 0; i < count; ++i) {
+                        if (model[i].uuid === selectedUuid) {
+                            currentIndex = i
+                            return
+                        }
+                    }
+                    currentIndex = 0
+                }
+
+                Component.onCompleted: syncSelection()
+                onActivated: StreamingPreferences.activeHostStreamProfile = model[index].uuid
+
+                Connections {
+                    target: StreamingPreferences
+                    onHostStreamProfilesChanged: streamProfileCombo.syncSelection()
+                    onActiveHostStreamProfileChanged: streamProfileCombo.syncSelection()
+                }
+            }
+
             NavigableToolButton {
                 id: tailscaleButton
                 visible: stackView.currentItem instanceof PcView

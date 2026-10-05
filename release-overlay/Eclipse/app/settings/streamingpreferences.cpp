@@ -53,6 +53,9 @@
 #define SER_LANGUAGE "language"
 #define SER_RENDERER "renderer"
 #define SER_HOST_STREAM_PROFILES "hostStreamProfiles"
+#define SER_MINIMUM_LATENCY "minimumLatency"
+#define SER_ACTIVE_HOST_STREAM_PROFILE "activeHostStreamProfile"
+#define SER_PROFILE_NAME "name"
 
 #define CURRENT_DEFAULT_VER 2
 
@@ -117,16 +120,55 @@ bool StreamingPreferences::hasHostStreamProfile(const QString& hostUuid)
 
 StreamingPreferences* StreamingPreferences::createForHost(const QString& hostUuid)
 {
-    if (!hasHostStreamProfile(hostUuid)) {
+    const QString activeProfileUuid = get()->activeHostStreamProfile();
+    QString profileUuid = activeProfileUuid.isEmpty() ? hostUuid : activeProfileUuid;
+    if (!hasHostStreamProfile(profileUuid) && !activeProfileUuid.isEmpty()) {
+        profileUuid = hostUuid;
+    }
+    if (!hasHostStreamProfile(profileUuid)) {
         return nullptr;
     }
 
     auto* preferences = new StreamingPreferences(nullptr);
-    preferences->applyHostStreamProfile(hostUuid);
+    preferences->applyHostStreamProfile(profileUuid);
     return preferences;
 }
 
-void StreamingPreferences::saveHostStreamProfile(const QString& hostUuid)
+QVariantList StreamingPreferences::hostStreamProfiles() const
+{
+    QSettings settings;
+    settings.beginGroup(SER_HOST_STREAM_PROFILES);
+    QStringList groups = settings.childGroups();
+    groups.sort(Qt::CaseInsensitive);
+
+    QVariantList profiles;
+    for (const QString& uuid : groups) {
+        settings.beginGroup(uuid);
+        const QString savedName = settings.value(SER_PROFILE_NAME).toString();
+        settings.endGroup();
+        profiles.append(QVariantMap{{"uuid", uuid}, {"name", savedName.isEmpty() ? uuid : savedName}});
+    }
+    settings.endGroup();
+    return profiles;
+}
+
+QString StreamingPreferences::activeHostStreamProfile() const
+{
+    return QSettings().value(SER_ACTIVE_HOST_STREAM_PROFILE).toString();
+}
+
+void StreamingPreferences::setActiveHostStreamProfile(const QString& hostUuid)
+{
+    const QString validUuid = (hostUuid.isEmpty() || hasHostStreamProfile(hostUuid)) ? hostUuid : QString();
+    QSettings settings;
+    if (settings.value(SER_ACTIVE_HOST_STREAM_PROFILE).toString() == validUuid) {
+        return;
+    }
+    settings.setValue(SER_ACTIVE_HOST_STREAM_PROFILE, validUuid);
+    emit activeHostStreamProfileChanged();
+}
+
+void StreamingPreferences::saveHostStreamProfile(const QString& hostUuid, const QString& hostName)
 {
     if (hostUuid.isEmpty()) {
         return;
@@ -136,14 +178,31 @@ void StreamingPreferences::saveHostStreamProfile(const QString& hostUuid)
     QSettings settings;
     settings.beginGroup(SER_HOST_STREAM_PROFILES);
     settings.beginGroup(hostUuid);
+    settings.setValue(SER_PROFILE_NAME, hostName);
     settings.setValue("fsrMode", globalPreferences->fsrMode);
     settings.setValue(SER_WIDTH, globalPreferences->width);
     settings.setValue(SER_HEIGHT, globalPreferences->height);
     settings.setValue(SER_FPS, globalPreferences->fps);
     settings.setValue(SER_BITRATE, globalPreferences->bitrateKbps);
     settings.setValue(SER_AUDIOCFG, static_cast<int>(globalPreferences->audioConfig));
+    settings.setValue(SER_MINIMUM_LATENCY, globalPreferences->minimumLatency);
     settings.endGroup();
     settings.endGroup();
+    emit globalPreferences->hostStreamProfilesChanged();
+}
+
+void StreamingPreferences::renameHostStreamProfile(const QString& hostUuid, const QString& hostName)
+{
+    if (!hasHostStreamProfile(hostUuid)) {
+        return;
+    }
+    QSettings settings;
+    settings.beginGroup(SER_HOST_STREAM_PROFILES);
+    settings.beginGroup(hostUuid);
+    settings.setValue(SER_PROFILE_NAME, hostName);
+    settings.endGroup();
+    settings.endGroup();
+    emit get()->hostStreamProfilesChanged();
 }
 
 void StreamingPreferences::clearHostStreamProfile(const QString& hostUuid)
@@ -156,6 +215,11 @@ void StreamingPreferences::clearHostStreamProfile(const QString& hostUuid)
     settings.beginGroup(SER_HOST_STREAM_PROFILES);
     settings.remove(hostUuid);
     settings.endGroup();
+    auto* globalPreferences = get();
+    if (globalPreferences->activeHostStreamProfile() == hostUuid) {
+        globalPreferences->setActiveHostStreamProfile(QString());
+    }
+    emit globalPreferences->hostStreamProfilesChanged();
 }
 
 void StreamingPreferences::applyHostStreamProfile(const QString& hostUuid)
@@ -170,6 +234,7 @@ void StreamingPreferences::applyHostStreamProfile(const QString& hostUuid)
     fps = settings.value(SER_FPS, fps).toInt();
     bitrateKbps = settings.value(SER_BITRATE, bitrateKbps).toInt();
     audioConfig = static_cast<AudioConfig>(settings.value(SER_AUDIOCFG, static_cast<int>(audioConfig)).toInt());
+    minimumLatency = qBound(0, settings.value(SER_MINIMUM_LATENCY, minimumLatency).toInt(), 50);
 }
 
 void StreamingPreferences::reload()
@@ -242,6 +307,7 @@ void StreamingPreferences::reload()
                                                                                                                  : UIDisplayMode::UI_MAXIMIZED)).toInt());
     language = static_cast<Language>(settings.value(SER_LANGUAGE,
                                                     static_cast<int>(Language::LANG_AUTO)).toInt());
+    minimumLatency = qBound(0, settings.value(SER_MINIMUM_LATENCY, 0).toInt(), 50);
 
 
     // Perform default settings updates as required based on last default version
@@ -404,6 +470,7 @@ void StreamingPreferences::save()
         profile.setValue(SER_FPS, fps);
         profile.setValue(SER_BITRATE, bitrateKbps);
         profile.setValue(SER_AUDIOCFG, static_cast<int>(audioConfig));
+        profile.setValue(SER_MINIMUM_LATENCY, minimumLatency);
         profile.endGroup();
         profile.endGroup();
 
@@ -462,6 +529,7 @@ void StreamingPreferences::save()
     settings.setValue(SER_SWAPFACEBUTTONS, swapFaceButtons);
     settings.setValue(SER_CAPTURESYSKEYS, captureSysKeysMode);
     settings.setValue(SER_KEEPAWAKE, keepAwake);
+    settings.setValue(SER_MINIMUM_LATENCY, qBound(0, minimumLatency, 50));
 }
 
 int StreamingPreferences::getDefaultBitrate(int width, int height, int fps, bool yuv444)

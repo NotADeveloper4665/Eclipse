@@ -1,5 +1,5 @@
 Name:           moonlight-eclipse
-Version:        0.4.2
+Version:        0.4.3
 Release:        1%{?dist}
 Summary:        Moonlight streaming client with the Eclipse control center
 License:        GPL-3.0-only
@@ -56,12 +56,17 @@ install -Dpm0644 app/res/moonlight.svg \
 
 %files
 %license LICENSE
-%doc README.md ECLIPSE.md ECLIPSE-VALIDATION.md ECLIPSE-DEVICES.md
+%doc README.md ECLIPSE.md ECLIPSE-VALIDATION.md ECLIPSE-DEVICES.md ECLIPSE-STREAMING.md
 %{_bindir}/moonlight-eclipse
 %{_datadir}/applications/moonlight-eclipse.desktop
 %{_datadir}/icons/hicolor/scalable/apps/moonlight-eclipse.svg
 
 %changelog
+* Sun Oct 04 2026 Eclipse contributors <eclipse@example.invalid> - 0.4.3-1
+- Add top-bar selection for saved per-PC streaming profiles
+- Add adjustable minimum-latency frame release scheduling
+- Replace verbose in-stream statistics text with a compact performance HUD
+
 * Sun Oct 04 2026 Eclipse contributors <eclipse@example.invalid> - 0.4.2-1
 - Align RPM version with Eclipse 0.4.2
 - Add FFmpeg hardware API and active decode/render pipeline diagnostics
