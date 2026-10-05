@@ -114,7 +114,7 @@ modules:
     build-commands:
       - unzip -q Eclipse-source.zip -d source
       - cp -a release-overlay/Eclipse/. source/Eclipse/
-      - cd source/Eclipse && qmake moonlight-qt.pro CONFIG+=release CONFIG-=debug_and_release CONFIG+=disable-cuda QMAKE_RPATHDIR=/app/lib
+      - cd source/Eclipse && PKG_CONFIG_PATH="/app/lib64/pkgconfig:/app/lib/pkgconfig:/app/share/pkgconfig:${PKG_CONFIG_PATH}" qmake moonlight-qt.pro CONFIG+=release CONFIG-=debug_and_release CONFIG+=disable-cuda QMAKE_RPATHDIR=/app/lib64
       - make -C source/Eclipse -j${FLATPAK_BUILDER_N_JOBS}
       - install -Dm0755 source/Eclipse/app/moonlight /app/bin/moonlight-eclipse
       - install -Dm0644 packaging/flatpak/io.github.notadeveloper4665.Eclipse.desktop /app/share/applications/io.github.notadeveloper4665.Eclipse.desktop
