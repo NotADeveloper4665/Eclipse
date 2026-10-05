@@ -157,13 +157,19 @@ QImage ControlCenter::render(QSize pixels, bool muted, bool fullscreen, const QS
                                recordingStatus.startsWith("Preparing recording") ||
                                recordingStatus.startsWith("Finalizing ");
         const bool finalizing = recordingStatus.startsWith("Finalizing ");
+        const bool recordingBlocked = m_Preferences->fsrMode > 0 && !recording;
         button({229,374,523,44}, finalizing ? "Finalizing recording…" :
-               (recording ? "Stop recording" : "Start stream recording"),
-               [this,finalizing](int){ if (!finalizing) action(ToggleRecording); });
+               (recording ? "Stop recording" :
+                (recordingBlocked ? "Recording unavailable while FSR is enabled" : "Start stream recording")),
+               [this,finalizing,recordingBlocked](int){
+            if (!finalizing && !recordingBlocked) action(ToggleRecording);
+        });
         button({229,438,523,44}, m_ConfirmDisconnect ? "Confirm disconnect" : "Disconnect from this PC", [this](int){
             if (m_ConfirmDisconnect) action(Disconnect); else m_ConfirmDisconnect = true;
         });
-        const QString status = recordingStatus.isEmpty() ?
+        const QString status = recordingBlocked ?
+                    QStringLiteral("Turn off client FSR scaling to record this stream.") :
+                    recordingStatus.isEmpty() ?
                     QStringLiteral("Disconnecting leaves your remote applications running.") :
                     QFontMetrics(QFont(QString(), 11)).elidedText(recordingStatus, Qt::ElideMiddle, 516);
         text({237,497,520,59}, status, 11,

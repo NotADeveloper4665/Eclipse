@@ -134,7 +134,12 @@ public:
 
     void recordVideoDecodeUnit(PDECODE_UNIT decodeUnit);
     void toggleRecording();
-    QString recordingStatus() const { return m_Recorder.statusText(); }
+    QString recordingStatus() const {
+        if (m_Preferences->fsrMode > 0 && !m_Recorder.active()) {
+            return tr("Recording is unavailable while client FSR scaling is enabled.");
+        }
+        return m_Recorder.statusText();
+    }
 
     void setShouldExit(bool quitHostApp = false);
 

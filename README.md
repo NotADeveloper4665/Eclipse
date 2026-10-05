@@ -2,15 +2,15 @@
 
 Eclipse is a Moonlight desktop streaming client with an in-session control center, Tailscale discovery, per-PC stream profiles, and decoder diagnostics. It retains Moonlight's license and upstream notices.
 
-## Eclipse 0.5.2
+## Eclipse 0.5.3
 
-Eclipse 0.5.2 adds client-side guest input permissions and view-only mode, adaptive bitrate adjustment for Sunshine hosts, and an option to launch directly into the host Desktop app. It includes the 0.5.1 in-stream recording and Flatpak packaging features. See [recording and stream details](release-overlay/Eclipse/ECLIPSE-STREAMING.md), [device setup and limits](release-overlay/Eclipse/ECLIPSE-DEVICES.md), and [Flatpak installation notes](packaging/flatpak/README.md).
+Eclipse 0.5.3 adds optional Vulkan Mailbox presentation (Fast-Sync) with FIFO fallback when the display surface does not support it. Recording is unavailable while client FSR is active, and the settings page has clearer descriptions and grouping. The 0.5.2 release added guest input permissions, adaptive bitrate for compatible Sunshine hosts, and direct desktop launch. See [release notes](release-notes-0.5.3.md), [recording and stream details](release-overlay/Eclipse/ECLIPSE-STREAMING.md), [device setup and limits](release-overlay/Eclipse/ECLIPSE-DEVICES.md), and [Flatpak installation notes](packaging/flatpak/README.md).
 
 The settings layout now stacks columns in small windows, wraps forwarding buttons, and collapses device controls by default. A dead build option referencing an absent settings test has been replaced by a working UI integration test mode.
 
 ## Releases
 
-The [Eclipse 0.04.1 release](https://github.com/NotADeveloper4665/Eclipse/releases/tag/eclipse-0.04.1) introduced FSR and device forwarding. Eclipse 0.5.2 is the current release.
+Download the current [Eclipse 0.5.3 release](https://github.com/NotADeveloper4665/Eclipse/releases/tag/eclipse-0.5.3). The [Eclipse 0.04.1 release](https://github.com/NotADeveloper4665/Eclipse/releases/tag/eclipse-0.04.1) introduced FSR and device forwarding.
 
 ## Source and checks
 

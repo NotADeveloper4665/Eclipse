@@ -87,3 +87,7 @@ jobs:
           export VK_ICD_FILENAMES="$(find /usr/share/vulkan/icd.d -name 'lvp_icd*.json' -print -quit)"
           test -n "$VK_ICD_FILENAMES"
           ./fsr-smoke source/Eclipse/app/res/fsr.glsl
+      - name: Vulkan present mode selection and fallback check
+        run: |
+          g++ -std=c++17 source/Eclipse/tests/vkpresentmode_smoke.cpp -o vkpresentmode-smoke
+          ./vkpresentmode-smoke

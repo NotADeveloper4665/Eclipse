@@ -18,6 +18,8 @@ The setting is exposed in the application settings page and the CLI as `--minimu
 
 The General page of the in-stream Quick Menu has Start stream recording and Stop recording controls. Recordings are saved as timestamped Matroska (`.mkv`) files under the user's Videos/Eclipse folder (or `~/Videos/Eclipse` when the system does not report a Videos folder). The client copies the incoming H.264, HEVC, or AV1 video and Opus audio packets into the file; it does not decode and re-encode them. Audio is recorded even when local playback is muted.
 
+Recording is unavailable while client FSR upscaling is enabled. Select Off under Settings → Basic Settings → Client upscaling (FSR), then start a new stream to record.
+
 Muxing and file writes run on a bounded background queue so disk stalls do not block video decode or audio playback. If the writer falls behind, recording stops with an error and the stream continues. Stopping recording finalizes the Matroska index; ending a streaming session also drains and closes the file. The saved file path and recorder state appear in the Quick Menu.
 
 ## Compact performance HUD

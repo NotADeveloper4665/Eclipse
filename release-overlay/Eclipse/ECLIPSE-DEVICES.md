@@ -4,7 +4,7 @@ FSR and Linux microphone, webcam, and USB/IP forwarding ship in Eclipse 0.04.1. 
 
 ## FSR 1 on the client
 
-Settings → Client FSR scaling offers Off, Quality (1.5×), Balanced (1.7×), and Performance (2×). The normal resolution selector becomes the desired output resolution. The host receives a smaller, even-sized stream request; the client keeps its output window at the target size and runs EASU and RCAS using libplacebo/Vulkan. The selected preset is saved globally or with a PC's streaming profile.
+Settings → Basic Settings → Client upscaling (FSR) offers Off, Quality (1.5×), Balanced (1.7×), and Performance (2×). The normal resolution selector becomes the desired output resolution. The host receives a smaller, even-sized stream request; the client keeps its output window at the target size and runs EASU and RCAS using libplacebo/Vulkan. The selected preset is saved globally or with a PC's streaming profile.
 
 This is spatial FSR 1, not temporal FSR 2/3 or frame generation. The bundled shader is agyild's luma-plane port of AMD FSR 1.0.2, with the AMD MIT notice retained. The RCAS pass is guarded when no upscale occurs, so resizing below the source size does not disable the hook. Chroma uses libplacebo's normal reconstruction. The initial implementation supports SDR 4:2:0 streams. HDR and YUV 4:4:4 combinations are rejected with a message. FSR is off by default. Vulkan initialization failure ends the attempt rather than silently substituting ordinary scaling on a reduced stream. A runtime hook error also ends the stream with guidance to disable FSR.
 

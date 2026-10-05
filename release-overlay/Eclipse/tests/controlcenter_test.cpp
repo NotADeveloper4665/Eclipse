@@ -85,6 +85,13 @@ int main(int argc, char** argv)
     click(45,128); // General
     click(350,395);
     check(actions.last()==ControlCenter::ToggleRecording,"recording control starts a stream recording");
+    prefs->fsrMode = 2;
+    paint(); // Refresh the recording control's enablement after the preference changes.
+    const int actionCountWithFsr = actions.size();
+    click(350,395);
+    check(actions.size()==actionCountWithFsr,
+          "recording control is disabled while FSR scaling is enabled");
+    prefs->fsrMode = 0;
     click(350,460);
     check(actions.last()!=ControlCenter::Disconnect,"disconnect needs confirmation");
     click(350,460);
@@ -154,10 +161,13 @@ int main(int argc, char** argv)
     StreamingPreferences::clearHostStreamProfile("host-a");
     check(StreamingPreferences::createForHost("host-a") == nullptr, "cleared profile uses defaults");
     prefs->fsrMode = 3;
+    prefs->enableMailboxPresentMode = true;
     prefs->save();
     prefs->fsrMode = 0;
+    prefs->enableMailboxPresentMode = false;
     prefs->reload();
     check(prefs->fsrMode == 3, "FSR preset persists globally");
+    check(prefs->enableMailboxPresentMode, "Fast-Sync preference persists globally");
     check(prefs->minimumLatency == 6, "minimum latency persists globally");
     StreamingPreferences::saveHostStreamProfile("fsr-host");
     prefs->fsrMode = 0;

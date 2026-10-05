@@ -391,8 +391,8 @@ Flickable {
 
                             ColumnLayout {
                                 Label {
-                                    text: qsTr("Custom resolutions are not officially supported by GeForce Experience, so it will not set your host display resolution. You will need to set it manually while in game.") + "\n\n" +
-                                          qsTr("Resolutions that are not supported by your client or host PC may cause streaming errors.") + "\n"
+                                    text: qsTr("Some hosts do not automatically change the display resolution to match a custom stream resolution. Set the host display resolution manually if needed.") + "\n\n" +
+                                          qsTr("A resolution unsupported by your client or host may cause streaming errors.") + "\n"
                                     wrapMode: Label.WordWrap
                                     Layout.maximumWidth: 300
                                 }
@@ -844,6 +844,7 @@ Flickable {
                         checked: StreamingPreferences.enableVsync
                         onCheckedChanged: {
                             StreamingPreferences.enableVsync = checked
+                            if (!checked) StreamingPreferences.enableMailboxPresentMode = false
                         }
 
                         ToolTip.delay: 1000
@@ -877,7 +878,7 @@ Flickable {
 
                     Label {
                         width: parent.width
-                        text: qsTr("Buffer frames on a steady schedule to reduce stutter from network or capture-rate jitter. Higher values add display latency.")
+                        text: qsTr("Add a steady delay before displaying frames to absorb network or host capture jitter. Higher values can reduce stutter but add latency.")
                         font.pointSize: 9
                         wrapMode: Text.Wrap
                     }
@@ -892,6 +893,27 @@ Flickable {
                         value: StreamingPreferences.minimumLatency
                         onValueChanged: StreamingPreferences.minimumLatency = Math.round(value)
                     }
+                }
+
+                CheckBox {
+                    id: mailboxVsyncCheck
+                    width: parent.width
+                    text: qsTr("Mailbox presentation (Fast-Sync)")
+                    font.pointSize: 12
+                    enabled: StreamingPreferences.enableVsync
+                    checked: StreamingPreferences.enableMailboxPresentMode
+                    onCheckedChanged: StreamingPreferences.enableMailboxPresentMode = checked
+                    ToolTip.delay: 1000
+                    ToolTip.timeout: 5000
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Uses Vulkan Mailbox presentation to show the newest completed frame at each refresh, reducing queued-frame delay without tearing. The display surface must support Mailbox; otherwise presentation falls back to standard V-Sync. Gamescope may provide Mailbox support.")
+                }
+
+                Label {
+                    width: parent.width
+                    text: qsTr("Takes effect on the next stream and requires the Vulkan renderer. V-Sync stays enabled when the stream frame rate is higher than the display refresh rate.")
+                    font.pointSize: 9
+                    wrapMode: Text.Wrap
                 }
 
                 CheckBox {
@@ -920,7 +942,7 @@ Flickable {
                     id: clientScalingGroupBox
                     width: parent.width
                     padding: 12
-                    title: "<font color=\"skyblue\">" + qsTr("Client FSR scaling") + "</font>"
+                    title: "<font color=\"skyblue\">" + qsTr("Client upscaling (FSR)") + "</font>"
                     font.pointSize: 12
                     Column {
                         anchors.fill: parent
@@ -949,7 +971,7 @@ Flickable {
                         }
                         Label {
                             width: parent.width
-                            text: qsTr("FSR scales the stream on this client GPU. It requires Vulkan, SDR, and 4:2:0 video; the setting applies to the next stream.")
+                            text: qsTr("FSR upscales video on this device. It requires the Vulkan renderer, SDR video, and standard 4:2:0 color sampling. Changes apply to the next stream. Recording is unavailable while FSR is enabled.")
                             font.pointSize: 10
                             wrapMode: Text.Wrap
                         }
@@ -961,7 +983,7 @@ Flickable {
                     property bool expanded: false
                     width: parent.width
                     padding: 12
-                    title: "<font color=\"skyblue\">" + qsTr("Microphone, webcam, and USB forwarding") + "</font>"
+                    title: "<font color=\"skyblue\">" + qsTr("Microphone, camera, and USB forwarding") + "</font>"
                     font.pointSize: 12
                     Column {
                         anchors.fill: parent
@@ -970,10 +992,10 @@ Flickable {
                         Label {
                             width: parent.width
                             wrapMode: Text.WordWrap
-                            text: qsTr("Linux host: enter an SSH alias or user@host with key authentication. Native microphone forwarding uses a virtual host microphone; webcam forwarding requires a host virtual camera. USB/IP shares the physical device and makes it unavailable locally.")
+                            text: qsTr("For a Linux host, enter an SSH alias or user@host configured for key-based login. Microphone and camera forwarding use virtual devices on the host. USB/IP passes a physical device to the host, so it cannot be used on this device at the same time.")
                         }
                         Button {
-                            text: deviceForwardingGroup.expanded ? qsTr("Hide forwarding controls") : qsTr("Show forwarding controls")
+                            text: deviceForwardingGroup.expanded ? qsTr("Hide device forwarding") : qsTr("Configure device forwarding")
                             onClicked: deviceForwardingGroup.expanded = !deviceForwardingGroup.expanded
                         }
                         Column {
@@ -1031,7 +1053,7 @@ Flickable {
             id: streamingAutomationGroupBox
             width: (parent.width - (parent.leftPadding + parent.rightPadding))
             padding: 12
-            title: "<font color=\"skyblue\">" + qsTr("Streaming Automation") + "</font>"
+            title: "<font color=\"skyblue\">" + qsTr("Streaming") + "</font>"
             font.pointSize: 12
 
             Column {
@@ -1040,13 +1062,13 @@ Flickable {
 
                 CheckBox {
                     width: parent.width
-                    text: qsTr("Dynamic adaptive bitrate")
+                    text: qsTr("Adjust bitrate automatically")
                     font.pointSize: 12
                     checked: StreamingPreferences.dynamicAdaptiveBitrate
                     onCheckedChanged: StreamingPreferences.dynamicAdaptiveBitrate = checked
                     ToolTip.delay: 1000
                     ToolTip.visible: hovered
-                    ToolTip.text: qsTr("Adjust stream bitrate while connected based on measured network round-trip time and jitter. Requires a Sunshine host with runtime bitrate control.")
+                    ToolTip.text: qsTr("Adjusts the bitrate during a stream to respond to changing network conditions. Requires a Sunshine host that supports runtime bitrate changes.")
                 }
 
                 Label {
@@ -1072,21 +1094,11 @@ Flickable {
 
                 Label {
                     width: parent.width
-                    text: qsTr("Applies to the next stream. The selected bitrate remains the upper limit; Eclipse lowers it during sustained packet loss and gradually restores it when the connection stabilizes.")
+                    text: qsTr("Applies to the next stream. Your selected bitrate remains the maximum. Eclipse lowers it when packet loss persists and raises it gradually as the connection recovers.")
                     font.pointSize: 10
                     wrapMode: Text.Wrap
                 }
 
-                CheckBox {
-                    width: parent.width
-                    text: qsTr("Launch straight to Desktop when connecting")
-                    font.pointSize: 12
-                    checked: StreamingPreferences.launchDesktopOnConnect
-                    onCheckedChanged: StreamingPreferences.launchDesktopOnConnect = checked
-                    ToolTip.delay: 1000
-                    ToolTip.visible: hovered
-                    ToolTip.text: qsTr("Skip the app selection grid and launch the host's app named Desktop. If the host does not expose Desktop, Eclipse leaves the app grid available.")
-                }
             }
         }
 
@@ -1188,7 +1200,7 @@ Flickable {
             id: hostSettingsGroupBox
             width: (parent.width - (parent.leftPadding + parent.rightPadding))
             padding: 12
-            title: "<font color=\"skyblue\">" + qsTr("Host Settings") + "</font>"
+            title: "<font color=\"skyblue\">" + qsTr("Host") + "</font>"
             font.pointSize: 12
 
             Column {
@@ -1220,6 +1232,17 @@ Flickable {
                     ToolTip.timeout: 5000
                     ToolTip.visible: hovered
                     ToolTip.text: qsTr("This will close the app or game you are streaming when you end your stream. You will lose any unsaved progress!")
+                }
+
+                CheckBox {
+                    width: parent.width
+                    text: qsTr("Connect directly to the host desktop")
+                    font.pointSize: 12
+                    checked: StreamingPreferences.launchDesktopOnConnect
+                    onCheckedChanged: StreamingPreferences.launchDesktopOnConnect = checked
+                    ToolTip.delay: 1000
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Skip the app list and start the host entry named Desktop. If the host does not provide that entry, Eclipse keeps the app list available.")
                 }
             }
         }
@@ -1770,14 +1793,14 @@ Flickable {
 
                 Label {
                     width: parent.width
-                    text: qsTr("These controls limit the input Eclipse sends to the host. They take effect the next time you connect.")
+                    text: qsTr("Choose which controls Eclipse can send to the host. Changes take effect the next time you connect.")
                     font.pointSize: 10
                     wrapMode: Text.Wrap
                 }
 
                 CheckBox {
                     width: parent.width
-                    text: qsTr("Direct view-only mode (block all guest input)")
+                    text: qsTr("View-only mode (block all input)")
                     font.pointSize: 12
                     checked: StreamingPreferences.viewOnlyMode
                     onCheckedChanged: StreamingPreferences.viewOnlyMode = checked
@@ -1812,7 +1835,7 @@ Flickable {
 
                 Label {
                     width: parent.width
-                    text: qsTr("These are local client-side controls, not host authentication or a security boundary.")
+                    text: qsTr("These settings only control input sent by this client. They do not change host access or authentication.")
                     font.pointSize: 10
                     wrapMode: Text.Wrap
                 }

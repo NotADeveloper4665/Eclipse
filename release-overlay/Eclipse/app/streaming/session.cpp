@@ -303,6 +303,9 @@ bool Session::chooseDecoder(StreamingPreferences::VideoDecoderSelection vds,
     params.videoFormat = videoFormat;
     params.window = window;
     params.enableVsync = enableVsync;
+    params.enableMailboxPresentMode = !testOnly && s_ActiveSession &&
+            s_ActiveSession->m_Preferences->enableVsync &&
+            s_ActiveSession->m_Preferences->enableMailboxPresentMode;
     params.enableFramePacing = enableFramePacing;
     params.testOnly = testOnly;
     params.minimumLatency = testOnly ? 0 : minimumLatency;
@@ -384,6 +387,12 @@ void Session::toggleRecording()
 {
     if (m_Recorder.active()) {
         m_Recorder.requestStop();
+        return;
+    }
+
+    if (m_Preferences->fsrMode > 0) {
+        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION,
+                    "Stream recording is unavailable while client FSR scaling is enabled");
         return;
     }
 
@@ -2486,10 +2495,16 @@ void Session::exec()
                 // than the display.
                 int displayHz = StreamUtils::getDisplayRefreshRate(m_Window);
                 bool enableVsync = m_Preferences->enableVsync;
-                if (displayHz + 5 < m_StreamConfig.fps) {
+                const bool mailboxVsyncRequested = m_Preferences->enableVsync &&
+                                                   m_Preferences->enableMailboxPresentMode;
+                if (displayHz + 5 < m_StreamConfig.fps && !mailboxVsyncRequested) {
                     SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION,
                                 "Disabling V-sync because refresh rate limit exceeded");
                     enableVsync = false;
+                }
+                else if (displayHz + 5 < m_StreamConfig.fps) {
+                    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
+                                "Keeping V-sync enabled with Mailbox present mode; excess frames will be replaced");
                 }
 
                 // Choose a new decoder (hopefully the same one, but possibly

@@ -1,4 +1,5 @@
 #include "plvk.h"
+#include "plvkpresentmode.h"
 
 #include "streaming/session.h"
 #include "streaming/streamutils.h"
@@ -498,41 +499,44 @@ bool PlVkRenderer::initialize(PDECODER_PARAMETERS params)
         return false;
     }
 
-    if (params->enableVsync) {
-        // FIFO mode improves frame pacing compared with Mailbox, especially for
-        // platforms like X11 that lack a VSyncSource implementation for Pacer.
-        m_VkPresentMode = VK_PRESENT_MODE_FIFO_KHR;
-    }
-    else {
-        // We want immediate mode for V-Sync disabled if possible
-        if (isPresentModeSupportedByPhysicalDevice(m_Vulkan->phys_device, VK_PRESENT_MODE_IMMEDIATE_KHR)) {
+    const bool immediateSupported = isPresentModeSupportedByPhysicalDevice(
+                m_Vulkan->phys_device, VK_PRESENT_MODE_IMMEDIATE_KHR);
+    const bool relaxedSupported = isPresentModeSupportedByPhysicalDevice(
+                m_Vulkan->phys_device, VK_PRESENT_MODE_FIFO_RELAXED_KHR);
+    const bool mailboxSupported = isPresentModeSupportedByPhysicalDevice(
+                m_Vulkan->phys_device, VK_PRESENT_MODE_MAILBOX_KHR);
+    m_VkPresentMode = chooseVulkanPresentMode(params->enableVsync,
+                                               params->enableMailboxPresentMode,
+                                               immediateSupported,
+                                               relaxedSupported,
+                                               mailboxSupported);
+
+    if (params->enableVsync && params->enableMailboxPresentMode) {
+        if (m_VkPresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
             SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
-                        "Using Immediate present mode with V-Sync disabled");
-            m_VkPresentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+                        "Using VK_PRESENT_MODE_MAILBOX_KHR (Fast-Sync)");
         }
         else {
             SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION,
-                        "Immediate present mode is not supported by the Vulkan driver. Latency may be higher than normal with V-Sync disabled.");
-
-            // FIFO Relaxed can tear if the frame is running late
-            if (isPresentModeSupportedByPhysicalDevice(m_Vulkan->phys_device, VK_PRESENT_MODE_FIFO_RELAXED_KHR)) {
-                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
-                            "Using FIFO Relaxed present mode with V-Sync disabled");
-                m_VkPresentMode = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
-            }
-            // Mailbox at least provides non-blocking behavior
-            else if (isPresentModeSupportedByPhysicalDevice(m_Vulkan->phys_device, VK_PRESENT_MODE_MAILBOX_KHR)) {
-                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
-                            "Using Mailbox present mode with V-Sync disabled");
-                m_VkPresentMode = VK_PRESENT_MODE_MAILBOX_KHR;
-            }
-            // FIFO is always supported
-            else {
-                SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
-                            "Using FIFO present mode with V-Sync disabled");
-                m_VkPresentMode = VK_PRESENT_MODE_FIFO_KHR;
-            }
+                        "Mailbox present mode is not supported by this Vulkan surface; falling back to FIFO");
         }
+    }
+    else if (params->enableVsync) {
+        // FIFO remains the default because it provides consistent pacing across compositors.
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Using FIFO present mode with V-Sync enabled");
+    }
+    else if (m_VkPresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) {
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Using Immediate present mode with V-Sync disabled");
+    }
+    else if (m_VkPresentMode == VK_PRESENT_MODE_FIFO_RELAXED_KHR) {
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Using FIFO Relaxed present mode with V-Sync disabled");
+    }
+    else if (m_VkPresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Using Mailbox present mode with V-Sync disabled");
+    }
+    else {
+        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION,
+                    "Immediate and FIFO Relaxed modes are unsupported; falling back to FIFO with V-Sync disabled");
     }
 
     // Start with a swapchain that is double-buffered for lowest display latency

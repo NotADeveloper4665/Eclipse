@@ -1,5 +1,5 @@
 Name:           moonlight-eclipse
-Version:        0.5.2
+Version:        0.5.3
 Release:        1%{?dist}
 Summary:        Moonlight streaming client with the Eclipse control center
 License:        GPL-3.0-only
@@ -62,6 +62,11 @@ install -Dpm0644 app/res/moonlight.svg \
 %{_datadir}/icons/hicolor/scalable/apps/moonlight-eclipse.svg
 
 %changelog
+* Mon Oct 05 2026 Eclipse contributors <eclipse@example.invalid> - 0.5.3-1
+- Add optional Vulkan Mailbox presentation with FIFO fallback for supported surfaces
+- Prevent stream recording while client FSR scaling is enabled
+- Reorganize streaming, host, and forwarding settings and clarify descriptions
+
 * Mon Oct 05 2026 Eclipse contributors <eclipse@example.invalid> - 0.5.2-1
 - Add configurable guest keyboard, pointer, and controller permissions with view-only mode
 - Add dynamic bitrate adaptation for Sunshine hosts using network RTT and jitter feedback

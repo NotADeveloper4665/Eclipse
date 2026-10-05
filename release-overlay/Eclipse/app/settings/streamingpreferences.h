@@ -159,6 +159,7 @@ public:
     Q_PROPERTY(bool unlockBitrate MEMBER unlockBitrate NOTIFY unlockBitrateChanged)
     Q_PROPERTY(bool autoAdjustBitrate MEMBER autoAdjustBitrate NOTIFY autoAdjustBitrateChanged)
     Q_PROPERTY(bool enableVsync MEMBER enableVsync NOTIFY enableVsyncChanged)
+    Q_PROPERTY(bool enableMailboxPresentMode MEMBER enableMailboxPresentMode NOTIFY mailboxPresentModeChanged)
     Q_PROPERTY(bool gameOptimizations MEMBER gameOptimizations NOTIFY gameOptimizationsChanged)
     Q_PROPERTY(bool playAudioOnHost MEMBER playAudioOnHost NOTIFY playAudioOnHostChanged)
     Q_PROPERTY(bool multiController MEMBER multiController NOTIFY multiControllerChanged)
@@ -202,6 +203,7 @@ public:
     bool unlockBitrate;
     bool autoAdjustBitrate;
     bool enableVsync;
+    bool enableMailboxPresentMode = false;
     bool gameOptimizations;
     bool playAudioOnHost;
     bool multiController;
@@ -250,6 +252,7 @@ signals:
     void unlockBitrateChanged();
     void autoAdjustBitrateChanged();
     void enableVsyncChanged();
+    void mailboxPresentModeChanged();
     void gameOptimizationsChanged();
     void playAudioOnHostChanged();
     void multiControllerChanged();
