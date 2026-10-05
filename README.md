@@ -10,7 +10,7 @@ The settings layout now stacks columns in small windows, wraps forwarding button
 
 ## Releases
 
-Download the current [Eclipse 0.5.3 release](https://github.com/NotADeveloper4665/Eclipse/releases/tag/eclipse-0.5.3). The [Eclipse 0.04.1 release](https://github.com/NotADeveloper4665/Eclipse/releases/tag/eclipse-0.04.1) introduced FSR and device forwarding.
+Download the current [Eclipse 0.5.3 release](https://github.com/NotADeveloper4665/Eclipse/releases/tag/eclipse-0.5.3).
 
 ## Source and checks
 
