@@ -58,6 +58,8 @@ private:
     bool m_StopRequested = false;
     std::size_t m_QueuedBytes = 0;
     std::int64_t m_RequestedStartUs = 0;
+    std::int64_t m_NextAudioPtsUs = 0;
+    bool m_AudioClockStarted = false;
     std::uint64_t m_NextVideoOrder = 0;
     int m_VideoFormat = 0;
     int m_Width = 0;

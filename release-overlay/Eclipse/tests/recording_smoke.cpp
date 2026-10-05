@@ -98,7 +98,10 @@ int main(int argc, char** argv)
     while (av_read_frame(audio, packet) >= 0) {
         if (packet->stream_index == audioIndex) {
             const std::int64_t pts = packet->pts == AV_NOPTS_VALUE ? packet->dts : packet->pts;
-            const std::int64_t ptsUs = av_rescale_q(pts, audio->streams[audioIndex]->time_base, AVRational{1, 1000000});
+            std::int64_t ptsUs = av_rescale_q(pts, audio->streams[audioIndex]->time_base, AVRational{1, 1000000});
+            // Audio callbacks can arrive in bursts. Simulate arrival-time
+            // jitter while keeping the first packet as the stream anchor.
+            if (audioPackets > 0 && audioPackets % 2 == 0) ptsUs -= 50000;
             recorder.submitAudio(packet->data, packet->size, ptsUs);
             ++audioPackets;
         }
@@ -123,11 +126,18 @@ int main(int argc, char** argv)
           "recorded audio remains Opus");
     int outputVideoPackets = 0;
     int outputAudioPackets = 0;
+    std::int64_t lastAudioDts = AV_NOPTS_VALUE;
     packet = av_packet_alloc();
     check(packet != nullptr, "output packet allocates");
     while (av_read_frame(output, packet) >= 0) {
         if (packet->stream_index == outputVideo) ++outputVideoPackets;
-        if (packet->stream_index == outputAudio) ++outputAudioPackets;
+        if (packet->stream_index == outputAudio) {
+            if (lastAudioDts != AV_NOPTS_VALUE) {
+                check(packet->dts > lastAudioDts, "audio packet timestamps remain strictly increasing under callback jitter");
+            }
+            lastAudioDts = packet->dts;
+            ++outputAudioPackets;
+        }
         av_packet_unref(packet);
     }
     av_packet_free(&packet);

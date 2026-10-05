@@ -126,6 +126,8 @@ bool StreamRecorder::start(const QString& outputPath, std::int64_t presentationS
     m_Queue.clear();
     m_QueuedBytes = 0;
     m_RequestedStartUs = presentationStartUs;
+    m_NextAudioPtsUs = 0;
+    m_AudioClockStarted = false;
     m_NextVideoOrder = 0;
     m_StopRequested = false;
     m_State.store(State::Starting);
@@ -251,7 +253,18 @@ void StreamRecorder::submitAudio(const std::uint8_t* data, int size, std::int64_
         return;
     }
     if (presentationTimeUs < m_RequestedStartUs) return;
-    packet.pts = presentationTimeUs;
+    // Audio callbacks can be delivered in bursts, so their wall-clock arrival
+    // times are not a reliable packet timeline. Anchor the track once, then
+    // advance it by each Opus packet's decoded sample count to keep audio DTS
+    // strictly ordered for the muxer.
+    if (!m_AudioClockStarted) {
+        packet.pts = presentationTimeUs;
+        m_AudioClockStarted = true;
+    }
+    else {
+        packet.pts = m_NextAudioPtsUs;
+    }
+    m_NextAudioPtsUs = packet.pts + packet.duration;
     m_QueuedBytes += packet.data.size();
     m_Queue.push_back(std::move(packet));
     m_Condition.notify_one();
