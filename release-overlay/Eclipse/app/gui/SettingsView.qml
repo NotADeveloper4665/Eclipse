@@ -101,115 +101,6 @@ Flickable {
         spacing: 15
 
         GroupBox {
-            id: clientScalingGroupBox
-            width: parent.width - (parent.leftPadding + parent.rightPadding)
-            padding: 12
-            title: "<font color=\"skyblue\">" + qsTr("Client FSR scaling") + "</font>"
-            font.pointSize: 12
-            Column {
-                anchors.fill: parent
-                spacing: 5
-                Label {
-                    width: parent.width
-                    text: qsTr("FSR preset")
-                    font.pointSize: 12
-                    wrapMode: Text.Wrap
-                }
-                AutoResizingComboBox {
-                    id: fsrPresetSelector
-                    objectName: "fsrPresetSelector"
-                    width: parent.width
-                    textRole: "text"
-                    model: ListModel {
-                        ListElement { text: qsTr("Off (native resolution)"); val: 0 }
-                        ListElement { text: qsTr("Quality (1.5×)"); val: 1 }
-                        ListElement { text: qsTr("Balanced (1.7×)"); val: 2 }
-                        ListElement { text: qsTr("Performance (2×)"); val: 3 }
-                    }
-                    Component.onCompleted: {
-                        currentIndex = StreamingPreferences.fsrMode
-                    }
-                    onActivated: StreamingPreferences.fsrMode = model.get(currentIndex).val
-                }
-                Label {
-                    width: parent.width
-                    text: qsTr("FSR scales the stream on this client GPU. It requires Vulkan, SDR, and 4:2:0 video; the setting applies to the next stream.")
-                    font.pointSize: 10
-                    wrapMode: Text.Wrap
-                }
-            }
-        }
-
-        GroupBox {
-            id: deviceForwardingGroup
-            property bool expanded: false
-            width: parent.width - parent.leftPadding - parent.rightPadding
-            padding: 12
-            title: "<font color=\"skyblue\">" + qsTr("Microphone, webcam, and USB forwarding") + "</font>"
-            font.pointSize: 12
-            Column {
-                anchors.fill: parent
-                width: parent.width
-                spacing: 10
-                Label {
-                    width: parent.width
-                    wrapMode: Text.WordWrap
-                    text: qsTr("Linux host: enter an SSH alias or user@host with key authentication. Native microphone forwarding uses a virtual host microphone; webcam forwarding requires a host virtual camera. USB/IP shares the physical device and makes it unavailable locally.")
-                }
-                Button {
-                    text: deviceForwardingGroup.expanded ? qsTr("Hide forwarding controls") : qsTr("Show forwarding controls")
-                    onClicked: deviceForwardingGroup.expanded = !deviceForwardingGroup.expanded
-                }
-                Column {
-                    width: parent.width
-                    spacing: 10
-                    visible: deviceForwardingGroup.expanded
-                TextField {
-                    id: forwardingHost
-                    width: parent.width
-                    placeholderText: qsTr("Host SSH alias or user@host")
-                    selectByMouse: true
-                }
-                MediaForwarding {
-                    width: parent.width
-                    title: qsTr("Microphone")
-                    forwarding: MicrophoneForwarding
-                    deviceKind: "microphone"
-                    sshTarget: forwardingHost.text
-                }
-                MediaForwarding {
-                    width: parent.width
-                    title: qsTr("Webcam")
-                    forwarding: CameraForwarding
-                    deviceKind: "camera"
-                    sshTarget: forwardingHost.text
-                }
-                DeviceForwarding {
-                    width: parent.width
-                    title: qsTr("USB microphone / audio device")
-                    forwarding: UsbAudioForwarding
-                    deviceKind: "audio"
-                    sshTarget: forwardingHost.text
-                }
-                DeviceForwarding {
-                    width: parent.width
-                    title: qsTr("USB webcam")
-                    forwarding: UsbCameraForwarding
-                    deviceKind: "camera"
-                    sshTarget: forwardingHost.text
-                }
-                DeviceForwarding {
-                    width: parent.width
-                    title: qsTr("Other USB device")
-                    forwarding: UsbDeviceForwarding
-                    deviceKind: "all"
-                    sshTarget: forwardingHost.text
-                }
-                }
-            }
-        }
-
-        GroupBox {
             id: basicSettingsGroupBox
             width: (parent.width - (parent.leftPadding + parent.rightPadding))
             padding: 12
@@ -1024,6 +915,114 @@ Flickable {
                                       qsTr("The stream will be HDR-capable, but some games may require an HDR monitor on your host PC to enable HDR mode.")
                                     :
                                       qsTr("HDR streaming is not supported on this PC.")
+                }
+                GroupBox {
+                    id: clientScalingGroupBox
+                    width: parent.width
+                    padding: 12
+                    title: "<font color=\"skyblue\">" + qsTr("Client FSR scaling") + "</font>"
+                    font.pointSize: 12
+                    Column {
+                        anchors.fill: parent
+                        spacing: 5
+                        Label {
+                            width: parent.width
+                            text: qsTr("FSR preset")
+                            font.pointSize: 12
+                            wrapMode: Text.Wrap
+                        }
+                        AutoResizingComboBox {
+                            id: fsrPresetSelector
+                            objectName: "fsrPresetSelector"
+                            width: parent.width
+                            textRole: "text"
+                            model: ListModel {
+                                ListElement { text: qsTr("Off (native resolution)"); val: 0 }
+                                ListElement { text: qsTr("Quality (1.5×)"); val: 1 }
+                                ListElement { text: qsTr("Balanced (1.7×)"); val: 2 }
+                                ListElement { text: qsTr("Performance (2×)"); val: 3 }
+                            }
+                            Component.onCompleted: {
+                                currentIndex = StreamingPreferences.fsrMode
+                            }
+                            onActivated: StreamingPreferences.fsrMode = model.get(currentIndex).val
+                        }
+                        Label {
+                            width: parent.width
+                            text: qsTr("FSR scales the stream on this client GPU. It requires Vulkan, SDR, and 4:2:0 video; the setting applies to the next stream.")
+                            font.pointSize: 10
+                            wrapMode: Text.Wrap
+                        }
+                    }
+                }
+
+                GroupBox {
+                    id: deviceForwardingGroup
+                    property bool expanded: false
+                    width: parent.width
+                    padding: 12
+                    title: "<font color=\"skyblue\">" + qsTr("Microphone, webcam, and USB forwarding") + "</font>"
+                    font.pointSize: 12
+                    Column {
+                        anchors.fill: parent
+                        width: parent.width
+                        spacing: 10
+                        Label {
+                            width: parent.width
+                            wrapMode: Text.WordWrap
+                            text: qsTr("Linux host: enter an SSH alias or user@host with key authentication. Native microphone forwarding uses a virtual host microphone; webcam forwarding requires a host virtual camera. USB/IP shares the physical device and makes it unavailable locally.")
+                        }
+                        Button {
+                            text: deviceForwardingGroup.expanded ? qsTr("Hide forwarding controls") : qsTr("Show forwarding controls")
+                            onClicked: deviceForwardingGroup.expanded = !deviceForwardingGroup.expanded
+                        }
+                        Column {
+                            width: parent.width
+                            spacing: 10
+                            visible: deviceForwardingGroup.expanded
+                        TextField {
+                            id: forwardingHost
+                            width: parent.width
+                            placeholderText: qsTr("Host SSH alias or user@host")
+                            selectByMouse: true
+                        }
+                        MediaForwarding {
+                            width: parent.width
+                            title: qsTr("Microphone")
+                            forwarding: MicrophoneForwarding
+                            deviceKind: "microphone"
+                            sshTarget: forwardingHost.text
+                        }
+                        MediaForwarding {
+                            width: parent.width
+                            title: qsTr("Webcam")
+                            forwarding: CameraForwarding
+                            deviceKind: "camera"
+                            sshTarget: forwardingHost.text
+                        }
+                        DeviceForwarding {
+                            width: parent.width
+                            title: qsTr("USB microphone / audio device")
+                            forwarding: UsbAudioForwarding
+                            deviceKind: "audio"
+                            sshTarget: forwardingHost.text
+                        }
+                        DeviceForwarding {
+                            width: parent.width
+                            title: qsTr("USB webcam")
+                            forwarding: UsbCameraForwarding
+                            deviceKind: "camera"
+                            sshTarget: forwardingHost.text
+                        }
+                        DeviceForwarding {
+                            width: parent.width
+                            title: qsTr("Other USB device")
+                            forwarding: UsbDeviceForwarding
+                            deviceKind: "all"
+                            sshTarget: forwardingHost.text
+                        }
+                        }
+                    }
                 }
             }
         }

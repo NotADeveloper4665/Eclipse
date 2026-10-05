@@ -1,5 +1,5 @@
 Name:           moonlight-eclipse
-Version:        0.4.3
+Version:        0.05
 Release:        1%{?dist}
 Summary:        Moonlight streaming client with the Eclipse control center
 License:        GPL-3.0-only
@@ -62,6 +62,9 @@ install -Dpm0644 app/res/moonlight.svg \
 %{_datadir}/icons/hicolor/scalable/apps/moonlight-eclipse.svg
 
 %changelog
+* Mon Oct 05 2026 Eclipse contributors <eclipse@example.invalid> - 0.05-1
+- Move FSR and microphone, webcam, and USB forwarding controls under Basic Settings
+
 * Sun Oct 04 2026 Eclipse contributors <eclipse@example.invalid> - 0.4.3-1
 - Add top-bar selection for saved per-PC streaming profiles
 - Add adjustable minimum-latency frame release scheduling
