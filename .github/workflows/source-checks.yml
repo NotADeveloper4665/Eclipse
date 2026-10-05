@@ -23,7 +23,7 @@ jobs:
           unzip -q Eclipse-source.zip -d source
           cp -a release-overlay/Eclipse/. source/Eclipse/
           qmllint source/Eclipse/app/gui/SettingsView.qml source/Eclipse/app/gui/DeviceForwarding.qml source/Eclipse/app/gui/MediaForwarding.qml
-          if rg -n '^\[.*truncat|^Warning: truncated output|^Total output lines:' source/Eclipse/app --glob '*.{cpp,h,qml}'; then exit 1; fi
+          if grep -R -n -E '^\[.*truncat|^Warning: truncated output|^Total output lines:' --include='*.cpp' --include='*.h' --include='*.qml' source/Eclipse/app; then exit 1; fi
       - name: Build the client
         run: |
           mkdir build
@@ -44,7 +44,7 @@ jobs:
           export XDG_CONFIG_HOME="$(mktemp -d)"
           timeout 60s ./moonlight > ui-test.log 2>&1
           cat ui-test.log
-          rg 'Eclipse settings runtime test passed' ui-test.log
+          grep -F 'Eclipse settings runtime test passed' ui-test.log
       - name: Control-center and forwarding lifecycle checks
         env:
           QT_QPA_PLATFORM: offscreen
