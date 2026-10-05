@@ -64,7 +64,13 @@ macx:!disable-prebuilts {
 
 unix:if(!macx|disable-prebuilts) {
     CONFIG += link_pkgconfig
-    PKGCONFIG += openssl sdl2 SDL2_ttf
+    PKGCONFIG += openssl sdl2
+    contains(CONFIG, flatpak) {
+        INCLUDEPATH += /app/include/SDL2
+        LIBS += -L/app/lib64 -lSDL2_ttf
+    } else {
+        PKGCONFIG += SDL2_ttf
+    }
 
     # We have our own optimized libopus.a for Steam Link
     if(!config_SL|disable-prebuilts) {
