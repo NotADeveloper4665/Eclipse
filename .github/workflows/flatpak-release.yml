@@ -1,0 +1,41 @@
+name: Build and publish Flatpak
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  release:
+    types: [published]
+permissions:
+  contents: write
+jobs:
+  flatpak:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Flatpak build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak flatpak-builder
+          flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+      - name: Build application
+        run: |
+          flatpak-builder --user --force-clean --disable-rofiles-fuse --install-deps-from=flathub \
+            --repo=flatpak-repo flatpak-build io.github.notadeveloper4665.Eclipse.yml
+      - name: Create installable Flatpak bundle
+        run: |
+          VERSION="$(sed -n 's/^Version:[[:space:]]*//p' packaging/eclipse.spec | head -n 1)"
+          flatpak build-bundle --runtime-repo=https://dl.flathub.org/repo/ \
+            flatpak-repo "Eclipse-${VERSION}-x86_64.flatpak" io.github.notadeveloper4665.Eclipse stable
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Eclipse-Flatpak-x86_64
+          path: Eclipse-*-x86_64.flatpak
+      - name: Attach bundle to GitHub release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="$(sed -n 's/^Version:[[:space:]]*//p' packaging/eclipse.spec | head -n 1)"
+          gh release upload "${GITHUB_REF_NAME}" "Eclipse-${VERSION}-x86_64.flatpak" \
+            --clobber --repo "${GITHUB_REPOSITORY}"

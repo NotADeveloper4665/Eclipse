@@ -73,7 +73,7 @@ unix:if(!macx|disable-prebuilts) {
 
     !disable-ffmpeg {
         packagesExist(libavcodec) {
-            PKGCONFIG += libavcodec libavutil libswscale
+            PKGCONFIG += libavcodec libavformat libavutil libswscale
             CONFIG += ffmpeg
 
             !disable-libva {
@@ -150,7 +150,7 @@ unix:if(!macx|disable-prebuilts) {
     }
 }
 win32 {
-    LIBS += -llibssl -llibcrypto -lSDL2 -lSDL2_ttf -lavcodec -lavutil -lswscale -lopus -ldxgi -ld3d11 -llibplacebo
+    LIBS += -llibssl -llibcrypto -lSDL2 -lSDL2_ttf -lavformat -lavcodec -lavutil -lswscale -lopus -ldxgi -ld3d11 -llibplacebo
     CONFIG += ffmpeg libplacebo
 }
 win32:!winrt {
@@ -158,7 +158,7 @@ win32:!winrt {
 }
 macx {
     !disable-prebuilts {
-        LIBS += -lssl.3 -lcrypto.3 -lavcodec.63 -lavutil.61 -lswscale.10 -lopus.0 -lSDL2 -lSDL2_ttf -lplacebo
+        LIBS += -lssl.3 -lcrypto.3 -lavformat.63 -lavcodec.63 -lavutil.61 -lswscale.10 -lopus.0 -lSDL2 -lSDL2_ttf -lplacebo
         CONFIG += discord-rpc libplacebo
     }
 
@@ -168,6 +168,7 @@ macx {
 
 SOURCES += \
     streaming/controlcenter.cpp \
+    streaming/recording/streamrecorder.cpp \
     backend/nvaddress.cpp \
     backend/nvapp.cpp \
     cli/pair.cpp \
@@ -211,6 +212,7 @@ SOURCES += \
 
 HEADERS += \
     streaming/controlcenter.h \
+    streaming/recording/streamrecorder.h \
     SDL_compat.h \
     backend/nvaddress.h \
     backend/nvapp.h \

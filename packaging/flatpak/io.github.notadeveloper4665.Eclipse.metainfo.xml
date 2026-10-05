@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.notadeveloper4665.Eclipse</id>
+  <name>Eclipse</name>
+  <summary>Moonlight game streaming client with an enhanced in-session control center</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-only</project_license>
+  <description>
+    <p>Eclipse streams games from compatible Sunshine and GameStream hosts. It includes an in-session control center, optional FSR scaling, stream profiles, performance statistics, and direct recording of supported video and audio streams.</p>
+  </description>
+  <launchable type="desktop-id">io.github.notadeveloper4665.Eclipse.desktop</launchable>
+  <url type="homepage">https://github.com/NotADeveloper4665/Eclipse</url>
+  <url type="bugtracker">https://github.com/NotADeveloper4665/Eclipse/issues</url>
+  <developer id="io.github.notadeveloper4665">
+    <name>Eclipse contributors</name>
+  </developer>
+  <releases>
+    <release version="0.5.1" date="2026-10-04">
+      <description>
+        <p>Add Flatpak packaging and in-stream recording for H.264, HEVC, or AV1 video with Opus audio.</p>
+      </description>
+    </release>
+  </releases>
+  <content_rating type="oars-1.1"/>
+</component>

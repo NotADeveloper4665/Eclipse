@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Eclipse
+GenericName=Game Streaming Client
+Comment=Stream games from a Sunshine host
+Exec=moonlight-eclipse
+Icon=io.github.notadeveloper4665.Eclipse
+Terminal=false
+Categories=Game;Network;
+StartupWMClass=com.moonlight_stream.Moonlight

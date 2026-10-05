@@ -2,6 +2,7 @@
 
 #include <QSemaphore>
 #include <QQuickWindow>
+#include <atomic>
 
 #include <Limelight.h>
 #include <opus_multistream.h>
@@ -10,6 +11,7 @@
 #include "video/decoder.h"
 #include "audio/renderers/renderer.h"
 #include "video/overlaymanager.h"
+#include "recording/streamrecorder.h"
 
 class SupportedVideoFormatList : public QList<int>
 {
@@ -128,6 +130,10 @@ public:
     }
 
     void flushWindowEvents();
+
+    void recordVideoDecodeUnit(PDECODE_UNIT decodeUnit);
+    void toggleRecording();
+    QString recordingStatus() const { return m_Recorder.statusText(); }
 
     void setShouldExit(bool quitHostApp = false);
 
@@ -283,6 +289,10 @@ private:
     int m_ActiveVideoWidth;
     int m_ActiveVideoHeight;
     int m_ActiveVideoFrameRate;
+
+    StreamRecorder m_Recorder;
+    std::atomic<std::int64_t> m_PresentationClockOffsetUs{0};
+    std::atomic<int> m_LastRecordedFrameNumber{-1};
 
     OpusMSDecoder* m_OpusDecoder;
     IAudioRenderer* m_AudioRenderer;

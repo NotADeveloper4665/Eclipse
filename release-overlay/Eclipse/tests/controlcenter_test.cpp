@@ -84,8 +84,10 @@ int main(int argc, char** argv)
     check(prefs->bitrateKbps>=75000 && prefs->bitrateKbps<=76000,"release stops bitrate slider dragging");
     click(45,128); // General
     click(350,395);
+    check(actions.last()==ControlCenter::ToggleRecording,"recording control starts a stream recording");
+    click(350,460);
     check(actions.last()!=ControlCenter::Disconnect,"disconnect needs confirmation");
-    click(350,395);
+    click(350,460);
     check(actions.last()==ControlCenter::Disconnect,"confirmed disconnect");
     SDL_Event key = {}; key.type = SDL_KEYDOWN; key.key.keysym.sym = SDLK_ESCAPE;
     check(center.handleEvent(key,size) && actions.last()==ControlCenter::Close,"Escape closes locally");

@@ -2201,6 +2201,12 @@ int FFmpegVideoDecoder::submitDecodeUnit(PDECODE_UNIT du)
         return DR_NEED_IDR;
     }
 
+    // Preserve the original encoded access unit before decoder-specific SPS
+    // adjustments, and leave muxing to the recorder's background thread.
+    if (Session::get() != nullptr) {
+        Session::get()->recordVideoDecodeUnit(du);
+    }
+
     if (!m_LastFrameNumber) {
         m_ActiveWndVideoStats.measurementStartUs = LiGetMicroseconds();
         m_LastFrameNumber = du->frameNumber;

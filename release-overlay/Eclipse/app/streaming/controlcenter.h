@@ -13,9 +13,10 @@
 class ControlCenter
 {
 public:
-    enum Action { Close, Fullscreen, ReleaseMouse, Mute, Stats, Restart, Disconnect, SecureAttention };
+    enum Action { Close, Fullscreen, ReleaseMouse, Mute, Stats, Restart, Disconnect, SecureAttention, ToggleRecording };
     explicit ControlCenter(StreamingPreferences* preferences);
-    QImage render(QSize pixels, bool muted, bool fullscreen, const QString& statistics);
+    QImage render(QSize pixels, bool muted, bool fullscreen, const QString& statistics,
+                  const QString& recordingStatus = QString());
     bool handleEvent(const SDL_Event& event, QSize windowSize);
     void save();
     std::function<void(Action)> action;

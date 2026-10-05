@@ -43,6 +43,9 @@
 #include <QGuiApplication>
 #include <QCursor>
 #include <QScreen>
+#include <QDir>
+#include <QDateTime>
+#include <QStandardPaths>
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 #include <QQuickOpenGLUtils>
@@ -352,6 +355,7 @@ int Session::drSetup(int videoFormat, int width, int height, int frameRate, void
     s_ActiveSession->m_ActiveVideoWidth = width;
     s_ActiveSession->m_ActiveVideoHeight = height;
     s_ActiveSession->m_ActiveVideoFrameRate = frameRate;
+    s_ActiveSession->m_Recorder.configureVideo(videoFormat, width, height, frameRate);
 
     // Defer decoder setup until we've started streaming so we
     // don't have to hide and show the SDL window (which seems to
@@ -363,8 +367,44 @@ int Session::drSetup(int videoFormat, int width, int height, int frameRate, void
     return 0;
 }
 
+void Session::recordVideoDecodeUnit(PDECODE_UNIT decodeUnit)
+{
+    if (decodeUnit == nullptr || decodeUnit->fullLength <= 0) return;
+    if (m_LastRecordedFrameNumber.exchange(decodeUnit->frameNumber) == decodeUnit->frameNumber) return;
+    const std::int64_t offset = static_cast<std::int64_t>(decodeUnit->enqueueTimeUs) -
+                                static_cast<std::int64_t>(decodeUnit->presentationTimeUs);
+    m_PresentationClockOffsetUs.store(offset);
+    m_Recorder.submitVideoDecodeUnit(decodeUnit);
+}
+
+void Session::toggleRecording()
+{
+    if (m_Recorder.active()) {
+        m_Recorder.requestStop();
+        return;
+    }
+
+    QString root = QStandardPaths::writableLocation(QStandardPaths::MoviesLocation);
+    if (root.isEmpty()) root = QDir::homePath() + QStringLiteral("/Videos");
+    const QString directory = root + QStringLiteral("/Eclipse");
+    QDir().mkpath(directory);
+    const QString filename = QStringLiteral("stream-%1.mkv")
+            .arg(QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd-HHmmss-zzz")));
+    const std::int64_t presentationStartUs = static_cast<std::int64_t>(LiGetMicroseconds()) -
+                                             m_PresentationClockOffsetUs.load();
+    if (m_Recorder.start(directory + QLatin1Char('/') + filename, presentationStartUs)) {
+        LiRequestIdrFrame();
+    }
+    else {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Unable to start stream recording: %s",
+                     qPrintable(m_Recorder.statusText()));
+    }
+}
+
 int Session::drSubmitDecodeUnit(PDECODE_UNIT du)
 {
+    s_ActiveSession->recordVideoDecodeUnit(du);
+
     // Use a lock since we'll be yanking this decoder out
     // from underneath the session when we initiate destruction.
     // We need to destroy the decoder on the main thread to satisfy
@@ -2043,6 +2083,10 @@ void Session::exec()
             LiSendKeyboardEvent(0x12, KEY_ACTION_UP, MODIFIER_CTRL);
             LiSendKeyboardEvent(0x11, KEY_ACTION_UP, 0);
             break;
+        case ControlCenter::ToggleRecording:
+            toggleRecording();
+            controlNeedsPaint = true;
+            break;
         }
     };
     auto paintControl = [&]() {
@@ -2056,7 +2100,7 @@ void Session::exec()
         if (w <= 0 || h <= 0) SDL_GetWindowSize(m_Window, &w, &h);
         if (w <= 0 || h <= 0) return;
         QImage image = controlCenter.render({w,h}, m_AudioMuted, m_IsFullScreen,
-                                           m_OverlayManager.statisticsSnapshot());
+                                           m_OverlayManager.statisticsSnapshot(), recordingStatus());
         SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(0,w,h,32,SDL_PIXELFORMAT_ABGR8888);
         if (surface) {
             SDL_ConvertPixels(w,h,SDL_PIXELFORMAT_ABGR8888,image.constBits(),image.bytesPerLine(),

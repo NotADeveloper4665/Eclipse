@@ -1,6 +1,7 @@
 #include "controlcenter.h"
 #include <QPainter>
 #include <QFont>
+#include <QFontMetrics>
 #include <QRegularExpression>
 #include <algorithm>
 
@@ -42,7 +43,8 @@ void ControlCenter::setBitrateFromPoint(const QPointF& point)
     m_Dirty = true;
 }
 
-QImage ControlCenter::render(QSize pixels, bool muted, bool fullscreen, const QString& statistics)
+QImage ControlCenter::render(QSize pixels, bool muted, bool fullscreen, const QString& statistics,
+                              const QString& recordingStatus)
 {
     m_Pixels = pixels;
     QImage image(pixels, QImage::Format_RGBA8888);
@@ -151,10 +153,21 @@ QImage ControlCenter::render(QSize pixels, bool muted, bool fullscreen, const QS
         text({247,222,485,52}, "Close this menu to continue. Settings are saved\nwhen you choose Save or Reconnect.", 13, QColor("#BDBDBD"));
         button({229,310,251,44}, "Performance HUD", [this](int){ action(Stats); });
         button({495,310,257,44}, "Send Ctrl + Alt + Del", [this](int){ action(SecureAttention); });
-        button({229,374,523,44}, m_ConfirmDisconnect ? "Confirm disconnect" : "Disconnect from this PC", [this](int){
+        const bool recording = recordingStatus.startsWith("Recording to ") ||
+                               recordingStatus.startsWith("Preparing recording") ||
+                               recordingStatus.startsWith("Finalizing ");
+        const bool finalizing = recordingStatus.startsWith("Finalizing ");
+        button({229,374,523,44}, finalizing ? "Finalizing recording…" :
+               (recording ? "Stop recording" : "Start stream recording"),
+               [this,finalizing](int){ if (!finalizing) action(ToggleRecording); });
+        button({229,438,523,44}, m_ConfirmDisconnect ? "Confirm disconnect" : "Disconnect from this PC", [this](int){
             if (m_ConfirmDisconnect) action(Disconnect); else m_ConfirmDisconnect = true;
         });
-        text({237,438,520,46}, "Disconnecting leaves your remote applications running.", 12, QColor("#BDBDBD"));
+        const QString status = recordingStatus.isEmpty() ?
+                    QStringLiteral("Disconnecting leaves your remote applications running.") :
+                    QFontMetrics(QFont(QString(), 11)).elidedText(recordingStatus, Qt::ElideMiddle, 516);
+        text({237,497,520,59}, status, 11,
+             recordingStatus.startsWith("Recording to ") ? QColor("#CE93D8") : QColor("#BDBDBD"));
     }
     else if (m_Page == 1) {
         const QVector<int> resolutions{1280,1920,2560,3840};
