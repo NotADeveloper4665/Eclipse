@@ -1,6 +1,6 @@
 # Client scaling and device forwarding
 
-These features are in development source for Eclipse 0.04. No new RPM or release tag is created by this change.
+These features ship in Eclipse 0.4.2. See the project README for release and build links.
 
 ## FSR 1 on the client
 

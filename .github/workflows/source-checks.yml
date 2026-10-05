@@ -16,7 +16,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential unzip qtbase5-dev qtdeclarative5-dev libqt5svg5-dev qtquickcontrols2-5-dev \
             qml-module-qtquick2 qml-module-qtquick-controls2 qml-module-qtquick-layouts qml-module-qtquick-window2 qml-module-qtgraphicaleffects \
-            libssl-dev libsdl2-dev libsdl2-ttf-dev libavcodec-dev libavutil-dev libswscale-dev libva-dev libvdpau-dev libopus-dev \
+            libssl-dev libsdl2-dev libsdl2-ttf-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libva-dev libvdpau-dev libopus-dev \
             libpulse-dev libasound2-dev libdrm-dev libegl1-mesa-dev libwayland-dev libplacebo-dev libvulkan-dev mesa-vulkan-drivers ffmpeg
       - name: Assemble complete source and parse QML
         run: |

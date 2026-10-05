@@ -1,5 +1,5 @@
 Name:           moonlight-eclipse
-Version:        0.04
+Version:        0.4.2
 Release:        1%{?dist}
 Summary:        Moonlight streaming client with the Eclipse control center
 License:        GPL-3.0-only
@@ -62,6 +62,12 @@ install -Dpm0644 app/res/moonlight.svg \
 %{_datadir}/icons/hicolor/scalable/apps/moonlight-eclipse.svg
 
 %changelog
+* Sun Oct 04 2026 Eclipse contributors <eclipse@example.invalid> - 0.4.2-1
+- Align RPM version with Eclipse 0.4.2
+- Add FFmpeg hardware API and active decode/render pipeline diagnostics
+- Expand stream statistics and correct FSR status reporting
+- Fix Ubuntu CI dependencies for libplacebo hardware renderer build
+
 * Sun Oct 04 2026 Eclipse contributors <eclipse@example.invalid> - 0.03.9-1
 - Match the overlay accent to Moonlight's default dark-theme Material Purple
 

@@ -30,4 +30,4 @@ The full Eclipse source is published in `NotADeveloper4665/Eclipse`, with Moonli
 
 ## FSR and device forwarding development
 
-See `ECLIPSE-DEVICES.md` for implementation, setup, test coverage, and hardware limits. No physical microphone, webcam, or USB transfer is claimed as tested. Native forwarding currently requires Linux on both ends. The development changes do not publish an RPM.
+See `ECLIPSE-DEVICES.md` for implementation, setup, test coverage, and hardware limits. No physical microphone, webcam, or USB transfer is claimed as tested. Native forwarding currently requires Linux on both ends. The release workflow assembles these sources and builds a Fedora RPM.
