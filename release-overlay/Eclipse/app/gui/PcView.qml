@@ -175,7 +175,8 @@ CenteredGridView {
                     text: qsTr("View All Apps")
                     onTriggered: {
                         var component = Qt.createComponent("AppView.qml")
-                        var appView = component.createObject(stackView, {"computerIndex": index, "objectName": model.name, "showHiddenGames": true})
+                        var appView = component.createObject(stackView, {"computerIndex": index, "objectName": model.name, "showHiddenGames": true,
+                                                                         "launchDesktopOnConnect": false})
                         stackView.push(appView)
                     }
                     visible: model.online && model.paired
@@ -245,7 +246,8 @@ CenteredGridView {
                 else if (model.paired) {
                     // go to game view
                     var component = Qt.createComponent("AppView.qml")
-                    var appView = component.createObject(stackView, {"computerIndex": index, "objectName": model.name})
+                    var appView = component.createObject(stackView, {"computerIndex": index, "objectName": model.name,
+                                                                     "launchDesktopOnConnect": StreamingPreferences.launchDesktopOnConnect})
                     stackView.push(appView)
                 }
                 else {

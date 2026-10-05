@@ -15,6 +15,11 @@
     <name>Eclipse contributors</name>
   </developer>
   <releases>
+    <release version="0.5.2" date="2026-10-05">
+      <description>
+        <p>Add guest input permissions and view-only mode, adaptive bitrate controls for Sunshine hosts, and direct-to-Desktop launch.</p>
+      </description>
+    </release>
     <release version="0.5.1" date="2026-10-04">
       <description>
         <p>Add Flatpak packaging and in-stream recording for H.264, HEVC, or AV1 video with Opus audio.</p>

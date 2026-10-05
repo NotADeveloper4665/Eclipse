@@ -25,6 +25,12 @@ public:
     Q_PROPERTY(QVariantList hostStreamProfiles READ hostStreamProfiles NOTIFY hostStreamProfilesChanged)
     Q_PROPERTY(QString activeHostStreamProfile READ activeHostStreamProfile WRITE setActiveHostStreamProfile NOTIFY activeHostStreamProfileChanged)
     Q_PROPERTY(int minimumLatency MEMBER minimumLatency NOTIFY minimumLatencyChanged)
+    Q_PROPERTY(bool dynamicAdaptiveBitrate MEMBER dynamicAdaptiveBitrate NOTIFY dynamicAdaptiveBitrateChanged)
+    Q_PROPERTY(bool viewOnlyMode MEMBER viewOnlyMode NOTIFY inputPermissionsChanged)
+    Q_PROPERTY(bool guestAllowKeyboard MEMBER guestAllowKeyboard NOTIFY inputPermissionsChanged)
+    Q_PROPERTY(bool guestAllowPointer MEMBER guestAllowPointer NOTIFY inputPermissionsChanged)
+    Q_PROPERTY(bool guestAllowGamepad MEMBER guestAllowGamepad NOTIFY inputPermissionsChanged)
+    Q_PROPERTY(bool launchDesktopOnConnect MEMBER launchDesktopOnConnect NOTIFY launchDesktopOnConnectChanged)
 
     QVariantList hostStreamProfiles() const;
     QString activeHostStreamProfile() const;
@@ -134,6 +140,14 @@ public:
     };
     Q_ENUM(CaptureSysKeysMode);
 
+    enum AdaptiveBitrateMode
+    {
+        ABR_QUALITY,
+        ABR_BALANCED,
+        ABR_LOW_LATENCY
+    };
+    Q_ENUM(AdaptiveBitrateMode)
+
     // 0=off, 1=quality (1.5x), 2=balanced (1.7x), 3=performance (2x).
     Q_PROPERTY(int fsrMode MEMBER fsrMode NOTIFY fsrModeChanged)
     int fsrMode = 0;
@@ -175,6 +189,7 @@ public:
     Q_PROPERTY(bool swapFaceButtons MEMBER swapFaceButtons NOTIFY swapFaceButtonsChanged)
     Q_PROPERTY(bool keepAwake MEMBER keepAwake NOTIFY keepAwakeChanged)
     Q_PROPERTY(CaptureSysKeysMode captureSysKeysMode MEMBER captureSysKeysMode NOTIFY captureSysKeysModeChanged)
+    Q_PROPERTY(AdaptiveBitrateMode adaptiveBitrateMode MEMBER adaptiveBitrateMode NOTIFY adaptiveBitrateModeChanged)
     Q_PROPERTY(Language language MEMBER language NOTIFY languageChanged);
 
     Q_INVOKABLE bool retranslate();
@@ -219,6 +234,13 @@ public:
     Language language;
     CaptureSysKeysMode captureSysKeysMode;
     int minimumLatency;
+    bool dynamicAdaptiveBitrate = false;
+    AdaptiveBitrateMode adaptiveBitrateMode = ABR_BALANCED;
+    bool viewOnlyMode = false;
+    bool guestAllowKeyboard = true;
+    bool guestAllowPointer = true;
+    bool guestAllowGamepad = true;
+    bool launchDesktopOnConnect = false;
     RendererSelection rendererSelection;
 
 signals:
@@ -261,6 +283,10 @@ signals:
     void hostStreamProfilesChanged();
     void activeHostStreamProfileChanged();
     void minimumLatencyChanged();
+    void dynamicAdaptiveBitrateChanged();
+    void adaptiveBitrateModeChanged();
+    void inputPermissionsChanged();
+    void launchDesktopOnConnectChanged();
     void rendererSelectionChanged();
 
 private:

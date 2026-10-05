@@ -1,4 +1,5 @@
 #include "session.h"
+#include "backend/nvhttp.h"
 #include "controlcenter.h"
 #include <QSet>
 #include <SDL_vulkan.h>
@@ -37,6 +38,8 @@
 #include <QtEndian>
 #include <QCoreApplication>
 #include <QThreadPool>
+#include <chrono>
+#include <thread>
 #include <QSvgRenderer>
 #include <QPainter>
 #include <QImage>
@@ -1864,6 +1867,80 @@ void Session::exec()
         return;
     }
 
+    if (m_Preferences->dynamicAdaptiveBitrate && m_StreamConfig.bitrate >= 1000) {
+        const int baseBitrate = m_StreamConfig.bitrate;
+        const auto mode = m_Preferences->adaptiveBitrateMode;
+        m_AdaptiveBitrateStop.store(false);
+        m_AdaptiveBitrateThread = std::thread([this, baseBitrate, mode]() {
+            NvHTTP host(m_Computer);
+            int currentBitrate = baseBitrate;
+            uint32_t baselineRtt = 0;
+            int stableIntervals = 0;
+            int congestionIntervals = 0;
+            bool endpointAvailable = true;
+            const int minimumPercent = mode == StreamingPreferences::ABR_QUALITY ? 60 :
+                                       mode == StreamingPreferences::ABR_LOW_LATENCY ? 25 : 40;
+            const uint32_t rttMarginMs = mode == StreamingPreferences::ABR_QUALITY ? 50 :
+                                         mode == StreamingPreferences::ABR_LOW_LATENCY ? 15 : 30;
+
+            while (!m_AdaptiveBitrateStop.load()) {
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+                if (m_AdaptiveBitrateStop.load()) break;
+
+                uint32_t rtt = 0;
+                uint32_t variance = 0;
+                if (!LiGetEstimatedRttInfo(&rtt, &variance) || rtt == 0) continue;
+                if (baselineRtt == 0) baselineRtt = rtt;
+
+                const bool congested = rtt > baselineRtt + rttMarginMs || variance > rttMarginMs;
+                if (congested) {
+                    ++congestionIntervals;
+                    stableIntervals = 0;
+                    if (congestionIntervals >= 2) {
+                        congestionIntervals = 0;
+                        const int nextBitrate = qMax(baseBitrate * minimumPercent / 100,
+                                                     currentBitrate * 85 / 100);
+                        if (nextBitrate < currentBitrate) {
+                            currentBitrate = nextBitrate;
+                        }
+                    }
+                }
+                else {
+                    congestionIntervals = 0;
+                    if (++stableIntervals >= 5) {
+                        stableIntervals = 0;
+                        currentBitrate = qMin(baseBitrate, currentBitrate + qMax(250, baseBitrate / 20));
+                    }
+                }
+
+                if (currentBitrate != baseBitrate && endpointAvailable) {
+                    try {
+                        host.setBitrate(currentBitrate);
+                        qInfo() << "Adaptive bitrate set to" << currentBitrate << "kbps";
+                    }
+                    catch (const GfeHttpResponseException& e) {
+                        qWarning() << "Host does not support runtime bitrate changes:" << e.toQString();
+                        endpointAvailable = false;
+                    }
+                    catch (const QtNetworkReplyException& e) {
+                        qWarning() << "Adaptive bitrate request failed:" << e.toQString();
+                        endpointAvailable = false;
+                    }
+                    catch (const std::exception& e) {
+                        qWarning() << "Adaptive bitrate disabled:" << e.what();
+                        endpointAvailable = false;
+                    }
+                }
+            }
+
+            // Restore the requested bitrate when this streaming session ends.
+            if (endpointAvailable && currentBitrate != baseBitrate) {
+                try { host.setBitrate(baseBitrate); }
+                catch (...) { qWarning() << "Could not restore the configured stream bitrate"; }
+            }
+        });
+    }
+
     // Pump the Qt event loop one last time before we create our SDL window
     // This is sometimes necessary for the QML code to process any signals
     // we've emitted from the async connection thread.
@@ -2076,12 +2153,14 @@ void Session::exec()
             emit reconnectRequestedChanged(); interrupt(); break;
         case ControlCenter::Disconnect: m_KeepHostAppRunning = true; interrupt(); break;
         case ControlCenter::SecureAttention:
-            LiSendKeyboardEvent(0x11, KEY_ACTION_DOWN, MODIFIER_CTRL);
-            LiSendKeyboardEvent(0x12, KEY_ACTION_DOWN, MODIFIER_CTRL | MODIFIER_ALT);
-            LiSendKeyboardEvent(0x2e, KEY_ACTION_DOWN, MODIFIER_CTRL | MODIFIER_ALT);
-            LiSendKeyboardEvent(0x2e, KEY_ACTION_UP, MODIFIER_CTRL | MODIFIER_ALT);
-            LiSendKeyboardEvent(0x12, KEY_ACTION_UP, MODIFIER_CTRL);
-            LiSendKeyboardEvent(0x11, KEY_ACTION_UP, 0);
+            if (m_Preferences->guestAllowKeyboard && !m_Preferences->viewOnlyMode) {
+                LiSendKeyboardEvent(0x11, KEY_ACTION_DOWN, MODIFIER_CTRL);
+                LiSendKeyboardEvent(0x12, KEY_ACTION_DOWN, MODIFIER_CTRL | MODIFIER_ALT);
+                LiSendKeyboardEvent(0x2e, KEY_ACTION_DOWN, MODIFIER_CTRL | MODIFIER_ALT);
+                LiSendKeyboardEvent(0x2e, KEY_ACTION_UP, MODIFIER_CTRL | MODIFIER_ALT);
+                LiSendKeyboardEvent(0x12, KEY_ACTION_UP, MODIFIER_CTRL);
+                LiSendKeyboardEvent(0x11, KEY_ACTION_UP, 0);
+            }
             break;
         case ControlCenter::ToggleRecording:
             toggleRecording();
@@ -2516,6 +2595,10 @@ void Session::exec()
     }
 
 DispatchDeferredCleanup:
+    m_AdaptiveBitrateStop.store(true);
+    if (m_AdaptiveBitrateThread.joinable()) {
+        m_AdaptiveBitrateThread.join();
+    }
     if (controlOpen) setControlOpen(false);
     // Switch back to synchronous logging mode
     StreamUtils::exitAsyncLoggingMode();

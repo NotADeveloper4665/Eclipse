@@ -1028,6 +1028,69 @@ Flickable {
         }
 
         GroupBox {
+            id: streamingAutomationGroupBox
+            width: (parent.width - (parent.leftPadding + parent.rightPadding))
+            padding: 12
+            title: "<font color=\"skyblue\">" + qsTr("Streaming Automation") + "</font>"
+            font.pointSize: 12
+
+            Column {
+                anchors.fill: parent
+                spacing: 5
+
+                CheckBox {
+                    width: parent.width
+                    text: qsTr("Dynamic adaptive bitrate")
+                    font.pointSize: 12
+                    checked: StreamingPreferences.dynamicAdaptiveBitrate
+                    onCheckedChanged: StreamingPreferences.dynamicAdaptiveBitrate = checked
+                    ToolTip.delay: 1000
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Adjust stream bitrate while connected based on measured network round-trip time and jitter. Requires a Sunshine host with runtime bitrate control.")
+                }
+
+                Label {
+                    width: parent.width
+                    text: qsTr("Adaptive bitrate mode")
+                    font.pointSize: 12
+                    wrapMode: Text.Wrap
+                    enabled: StreamingPreferences.dynamicAdaptiveBitrate
+                }
+
+                AutoResizingComboBox {
+                    width: parent.width
+                    enabled: StreamingPreferences.dynamicAdaptiveBitrate
+                    textRole: "text"
+                    model: ListModel {
+                        ListElement { text: qsTr("Quality"); value: StreamingPreferences.ABR_QUALITY }
+                        ListElement { text: qsTr("Balanced"); value: StreamingPreferences.ABR_BALANCED }
+                        ListElement { text: qsTr("Low latency"); value: StreamingPreferences.ABR_LOW_LATENCY }
+                    }
+                    Component.onCompleted: currentIndex = StreamingPreferences.adaptiveBitrateMode
+                    onActivated: StreamingPreferences.adaptiveBitrateMode = model.get(currentIndex).value
+                }
+
+                Label {
+                    width: parent.width
+                    text: qsTr("Applies to the next stream. The selected bitrate remains the upper limit; Eclipse lowers it during sustained packet loss and gradually restores it when the connection stabilizes.")
+                    font.pointSize: 10
+                    wrapMode: Text.Wrap
+                }
+
+                CheckBox {
+                    width: parent.width
+                    text: qsTr("Launch straight to Desktop when connecting")
+                    font.pointSize: 12
+                    checked: StreamingPreferences.launchDesktopOnConnect
+                    onCheckedChanged: StreamingPreferences.launchDesktopOnConnect = checked
+                    ToolTip.delay: 1000
+                    ToolTip.visible: hovered
+                    ToolTip.text: qsTr("Skip the app selection grid and launch the host's app named Desktop. If the host does not expose Desktop, Eclipse leaves the app grid available.")
+                }
+            }
+        }
+
+        GroupBox {
 
             id: audioSettingsGroupBox
             width: (parent.width - (parent.leftPadding + parent.rightPadding))
@@ -1690,6 +1753,68 @@ Flickable {
                     ToolTip.timeout: 5000
                     ToolTip.visible: hovered
                     ToolTip.text: qsTr("Allows Moonlight to capture gamepad inputs even if it's not the current window in focus")
+                }
+            }
+        }
+
+        GroupBox {
+            id: guestPermissionsGroupBox
+            width: (parent.width - (parent.leftPadding + parent.rightPadding))
+            padding: 12
+            title: "<font color=\"skyblue\">" + qsTr("Guest Input Permissions") + "</font>"
+            font.pointSize: 12
+
+            Column {
+                anchors.fill: parent
+                spacing: 5
+
+                Label {
+                    width: parent.width
+                    text: qsTr("These controls limit the input Eclipse sends to the host. They take effect the next time you connect.")
+                    font.pointSize: 10
+                    wrapMode: Text.Wrap
+                }
+
+                CheckBox {
+                    width: parent.width
+                    text: qsTr("Direct view-only mode (block all guest input)")
+                    font.pointSize: 12
+                    checked: StreamingPreferences.viewOnlyMode
+                    onCheckedChanged: StreamingPreferences.viewOnlyMode = checked
+                }
+
+                CheckBox {
+                    width: parent.width
+                    text: qsTr("Allow keyboard input")
+                    font.pointSize: 12
+                    enabled: !StreamingPreferences.viewOnlyMode
+                    checked: StreamingPreferences.guestAllowKeyboard
+                    onCheckedChanged: StreamingPreferences.guestAllowKeyboard = checked
+                }
+
+                CheckBox {
+                    width: parent.width
+                    text: qsTr("Allow mouse and touch input")
+                    font.pointSize: 12
+                    enabled: !StreamingPreferences.viewOnlyMode
+                    checked: StreamingPreferences.guestAllowPointer
+                    onCheckedChanged: StreamingPreferences.guestAllowPointer = checked
+                }
+
+                CheckBox {
+                    width: parent.width
+                    text: qsTr("Allow controller input")
+                    font.pointSize: 12
+                    enabled: !StreamingPreferences.viewOnlyMode
+                    checked: StreamingPreferences.guestAllowGamepad
+                    onCheckedChanged: StreamingPreferences.guestAllowGamepad = checked
+                }
+
+                Label {
+                    width: parent.width
+                    text: qsTr("These are local client-side controls, not host authentication or a security boundary.")
+                    font.pointSize: 10
+                    wrapMode: Text.Wrap
                 }
             }
         }

@@ -1,0 +1,35 @@
+name: Publish checked release
+
+on:
+  workflow_run:
+    workflows: ["Source and interaction checks"]
+    types: [completed]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - name: Publish the version in the package spec
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_COMMIT: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          VERSION="$(sed -n 's/^Version:[[:space:]]*//p' packaging/eclipse.spec | head -n 1)"
+          TAG="eclipse-${VERSION}"
+          if gh release view "$TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
+            echo "Release $TAG already exists; leaving it unchanged."
+            exit 0
+          fi
+          gh release create "$TAG" \
+            --target "$RELEASE_COMMIT" \
+            --title "Eclipse $VERSION" \
+            --notes-file "release-notes-${VERSION}.md" \
+            --repo "$GH_REPO"

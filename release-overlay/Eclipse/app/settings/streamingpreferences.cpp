@@ -56,6 +56,13 @@
 #define SER_MINIMUM_LATENCY "minimumLatency"
 #define SER_ACTIVE_HOST_STREAM_PROFILE "activeHostStreamProfile"
 #define SER_PROFILE_NAME "name"
+#define SER_DYNAMIC_ABR "dynamicAdaptiveBitrate"
+#define SER_ABR_MODE "adaptiveBitrateMode"
+#define SER_VIEW_ONLY "viewOnlyMode"
+#define SER_GUEST_KEYBOARD "guestAllowKeyboard"
+#define SER_GUEST_POINTER "guestAllowPointer"
+#define SER_GUEST_GAMEPAD "guestAllowGamepad"
+#define SER_LAUNCH_DESKTOP "launchDesktopOnConnect"
 
 #define CURRENT_DEFAULT_VER 2
 
@@ -280,6 +287,13 @@ void StreamingPreferences::reload()
     gamepadMouse = settings.value(SER_GAMEPADMOUSE, true).toBool();
     detectNetworkBlocking = settings.value(SER_DETECTNETBLOCKING, true).toBool();
     showPerformanceOverlay = settings.value(SER_SHOWPERFOVERLAY, false).toBool();
+    dynamicAdaptiveBitrate = settings.value(SER_DYNAMIC_ABR, false).toBool();
+    adaptiveBitrateMode = static_cast<AdaptiveBitrateMode>(qBound(0, settings.value(SER_ABR_MODE, static_cast<int>(ABR_BALANCED)).toInt(), 2));
+    viewOnlyMode = settings.value(SER_VIEW_ONLY, false).toBool();
+    guestAllowKeyboard = settings.value(SER_GUEST_KEYBOARD, true).toBool();
+    guestAllowPointer = settings.value(SER_GUEST_POINTER, true).toBool();
+    guestAllowGamepad = settings.value(SER_GUEST_GAMEPAD, true).toBool();
+    launchDesktopOnConnect = settings.value(SER_LAUNCH_DESKTOP, false).toBool();
     packetSize = settings.value(SER_PACKETSIZE, 0).toInt();
     swapMouseButtons = settings.value(SER_SWAPMOUSEBUTTONS, false).toBool();
     muteOnFocusLoss = settings.value(SER_MUTEONFOCUSLOSS, false).toBool();
@@ -483,6 +497,13 @@ void StreamingPreferences::save()
         global->absoluteMouseMode = absoluteMouseMode;
         global->multiController = multiController;
         global->showPerformanceOverlay = showPerformanceOverlay;
+        global->dynamicAdaptiveBitrate = dynamicAdaptiveBitrate;
+        global->adaptiveBitrateMode = adaptiveBitrateMode;
+        global->viewOnlyMode = viewOnlyMode;
+        global->guestAllowKeyboard = guestAllowKeyboard;
+        global->guestAllowPointer = guestAllowPointer;
+        global->guestAllowGamepad = guestAllowGamepad;
+        global->launchDesktopOnConnect = launchDesktopOnConnect;
         global->save();
         return;
     }
@@ -512,6 +533,13 @@ void StreamingPreferences::save()
     settings.setValue(SER_PACKETSIZE, packetSize);
     settings.setValue(SER_DETECTNETBLOCKING, detectNetworkBlocking);
     settings.setValue(SER_SHOWPERFOVERLAY, showPerformanceOverlay);
+    settings.setValue(SER_DYNAMIC_ABR, dynamicAdaptiveBitrate);
+    settings.setValue(SER_ABR_MODE, static_cast<int>(adaptiveBitrateMode));
+    settings.setValue(SER_VIEW_ONLY, viewOnlyMode);
+    settings.setValue(SER_GUEST_KEYBOARD, guestAllowKeyboard);
+    settings.setValue(SER_GUEST_POINTER, guestAllowPointer);
+    settings.setValue(SER_GUEST_GAMEPAD, guestAllowGamepad);
+    settings.setValue(SER_LAUNCH_DESKTOP, launchDesktopOnConnect);
     settings.setValue(SER_AUDIOCFG, static_cast<int>(audioConfig));
     settings.setValue(SER_HDR, enableHdr);
     settings.setValue(SER_YUV444, enableYUV444);

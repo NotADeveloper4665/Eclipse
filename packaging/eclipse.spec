@@ -1,5 +1,5 @@
 Name:           moonlight-eclipse
-Version:        0.5.1
+Version:        0.5.2
 Release:        1%{?dist}
 Summary:        Moonlight streaming client with the Eclipse control center
 License:        GPL-3.0-only
@@ -62,6 +62,11 @@ install -Dpm0644 app/res/moonlight.svg \
 %{_datadir}/icons/hicolor/scalable/apps/moonlight-eclipse.svg
 
 %changelog
+* Mon Oct 05 2026 Eclipse contributors <eclipse@example.invalid> - 0.5.2-1
+- Add configurable guest keyboard, pointer, and controller permissions with view-only mode
+- Add dynamic bitrate adaptation for Sunshine hosts using network RTT and jitter feedback
+- Add an option to launch directly into the host Desktop app
+
 * Sun Oct 04 2026 Eclipse contributors <eclipse@example.invalid> - 0.5.1-1
 - Add a Flatpak package for cross-distribution Linux installation
 - Add in-stream H.264, HEVC, or AV1 video and Opus audio recording without re-encoding

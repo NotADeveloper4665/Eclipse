@@ -3,6 +3,7 @@
 #include <QSemaphore>
 #include <QQuickWindow>
 #include <atomic>
+#include <thread>
 
 #include <Limelight.h>
 #include <opus_multistream.h>
@@ -284,6 +285,8 @@ private:
 
     bool m_AsyncConnectionSuccess;
     int m_PortTestResults;
+    std::atomic_bool m_AdaptiveBitrateStop{false};
+    std::thread m_AdaptiveBitrateThread;
 
     int m_ActiveVideoFormat;
     int m_ActiveVideoWidth;
