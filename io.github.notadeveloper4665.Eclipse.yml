@@ -54,6 +54,14 @@ modules:
         tag: release-2.32.70
         commit: a53b6ad90ecd2d0ccfe01d5cfd2059793acf8c12
 
+  - name: sdl2-pkgconfig-compat
+    buildsystem: simple
+    build-commands:
+      - install -Dm0644 sdl2.pc /app/lib64/pkgconfig/sdl2.pc
+    sources:
+      - type: file
+        path: packaging/flatpak/sdl2.pc
+
   - name: SDL2_ttf
     buildsystem: cmake-ninja
     builddir: true

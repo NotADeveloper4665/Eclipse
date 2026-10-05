@@ -1,0 +1,8 @@
+prefix=/app
+libdir=${prefix}/lib64
+includedir=${prefix}/include
+
+Name: sdl2
+Description: SDL2 compatibility package backed by SDL2-compat
+Version: 2.32.70
+Requires: sdl2-compat >= 2.32.70
