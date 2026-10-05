@@ -19,7 +19,7 @@ jobs:
           flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
       - name: Build application
         run: |
-          flatpak-builder --user --force-clean --disable-rofiles-fuse --install-deps-from=flathub \
+          flatpak-builder --user --force-clean --disable-rofiles-fuse --default-branch=stable --install-deps-from=flathub \
             --repo=flatpak-repo flatpak-build io.github.notadeveloper4665.Eclipse.yml
       - name: Create installable Flatpak bundle
         run: |
