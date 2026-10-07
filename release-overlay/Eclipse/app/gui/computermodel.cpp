@@ -248,6 +248,13 @@ void ComputerModel::pairComputer(int computerIndex, QString pin)
     m_ComputerManager->pairHost(m_Computers[computerIndex], pin);
 }
 
+void ComputerModel::pairComputerWithSyzygyKey(int computerIndex, QString key)
+{
+    Q_ASSERT(computerIndex < m_Computers.count());
+
+    m_ComputerManager->pairHostWithSyzygyKey(m_Computers[computerIndex], key);
+}
+
 void ComputerModel::handlePairingCompleted(NvComputer*, QString error)
 {
     emit pairingCompleted(error.isEmpty() ? QVariant() : error);

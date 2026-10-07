@@ -84,3 +84,7 @@ Kernel USB/IP usage: https://github.com/torvalds/linux/blob/master/tools/usb/usb
 - The forwarding tests exercise discovery, input validation, unplug-before-share, bind/tunnel/unbind lifecycle, restoration after SSH failure, and a real Opus media pipe using synthetic capture and a simulated SSH receiver.
 - A build-only UI smoke mode loads the production main window, invokes its Settings route, verifies the settings page and forwarding controllers, and activates the FSR selector. This mode is excluded from shipping binaries.
 - Real microphone playback, physical webcam capture, USB hardware transfer, host driver installation, and client/host streaming latency are not validated in this workspace.
+
+## Syzygy host-key pairing
+
+For a Syzygy host started with `-s`, open the unpaired host's context menu in Eclipse and select **Pair with Syzygy access key**. Enter the 48-character key printed by `syzygy -psk`. Eclipse uses the key to answer a challenge and verify the host certificate; it does not send or save the key itself. Existing PIN pairing remains available for other compatible hosts. The key grants the paired client the full Syzygy host permission set, so share it only with trusted users and devices.

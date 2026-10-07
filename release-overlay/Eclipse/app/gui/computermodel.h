@@ -37,6 +37,7 @@ public:
     Q_INVOKABLE QString generatePinString();
 
     Q_INVOKABLE void pairComputer(int computerIndex, QString pin);
+    Q_INVOKABLE void pairComputerWithSyzygyKey(int computerIndex, QString key);
 
     Q_INVOKABLE void testConnectionForComputer(int computerIndex);
 

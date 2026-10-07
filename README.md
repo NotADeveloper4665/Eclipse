@@ -2,15 +2,15 @@
 
 Eclipse is a Moonlight desktop streaming client with an in-session control center, Tailscale discovery, per-PC stream profiles, and decoder diagnostics. It retains Moonlight's license and upstream notices.
 
-## Eclipse 0.5.3
+## Eclipse 0.5.4
 
-Eclipse 0.5.3 adds optional Vulkan Mailbox presentation (Fast-Sync) with FIFO fallback when the display surface does not support it. Recording is unavailable while client FSR is active, and the settings page has clearer descriptions and grouping. The 0.5.2 release added guest input permissions, adaptive bitrate for compatible Sunshine hosts, and direct desktop launch. See [release notes](release-notes-0.5.3.md), [recording and stream details](release-overlay/Eclipse/ECLIPSE-STREAMING.md), [device setup and limits](release-overlay/Eclipse/ECLIPSE-DEVICES.md), and [Flatpak installation notes](packaging/flatpak/README.md).
+Eclipse 0.5.4 adds key-based pairing for Syzygy hosts. Enter a Syzygy host key from the unpaired host's context menu; Eclipse uses it to prove access without sending or storing the key itself. A successful key pairing grants that client full host permissions, so protect the key. This release carries forward 0.5.3's Vulkan Mailbox presentation, FSR-aware recording control, and settings updates. See [release notes](release-notes-0.5.4.md), [recording and stream details](release-overlay/Eclipse/ECLIPSE-STREAMING.md), [device setup and limits](release-overlay/Eclipse/ECLIPSE-DEVICES.md), and [Flatpak installation notes](packaging/flatpak/README.md).
 
 The settings layout now stacks columns in small windows, wraps forwarding buttons, and collapses device controls by default. A dead build option referencing an absent settings test has been replaced by a working UI integration test mode.
 
 ## Releases
 
-Download the current [Eclipse 0.5.3 release](https://github.com/NotADeveloper4665/Eclipse/releases/tag/eclipse-0.5.3).
+The 0.5.4 source and package builds are running from GitHub Actions. The latest published package remains [Eclipse 0.5.3](https://github.com/NotADeveloper4665/Eclipse/releases/tag/eclipse-0.5.3).
 
 ## Source and checks
 

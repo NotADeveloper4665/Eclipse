@@ -5,7 +5,7 @@ Eclipse's Flatpak is built from `Eclipse-source.zip` plus the contents of `relea
 Install Flatpak for your Linux distribution and configure Flathub, then install the downloaded bundle:
 
 ```sh
-flatpak install --user ./Eclipse-0.5.3-x86_64.flatpak
+flatpak install --user ./Eclipse-0.5.4-x86_64.flatpak
 flatpak run io.github.notadeveloper4665.Eclipse
 ```
 

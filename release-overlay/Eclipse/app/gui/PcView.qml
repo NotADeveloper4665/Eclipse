@@ -48,6 +48,7 @@ CenteredGridView {
     {
         // Close the PIN dialog
         pairDialog.close()
+        pairDialog.syzygyKeyPairing = false
 
         // Display a failed dialog if we got an error
         if (error !== undefined) {
@@ -170,6 +171,15 @@ CenteredGridView {
                     text: qsTr("PC Status: %1").arg(model.online ? qsTr("Online") : qsTr("Offline"))
                     font.bold: true
                     enabled: false
+                }
+                NavigableMenuItem {
+                    text: qsTr("Pair with Syzygy access key…")
+                    visible: model.online && !model.paired && model.serverSupported
+                    onTriggered: {
+                        syzygyKeyDialog.pcIndex = index
+                        syzygyKeyDialog.pcName = model.name
+                        syzygyKeyDialog.open()
+                    }
                 }
                 NavigableMenuItem {
                     text: qsTr("View All Apps")
@@ -312,11 +322,76 @@ CenteredGridView {
 
         // don't allow edits to the rest of the window while open
         property string pin : "0000"
-        text:qsTr("Please enter %1 on your host PC. This dialog will close when pairing is completed.").arg(pin)+"\n\n"+
-             qsTr("If your host PC is running Sunshine, navigate to the Sunshine web UI to enter the PIN.")
+        property bool syzygyKeyPairing: false
+        text: syzygyKeyPairing
+             ? qsTr("Pairing with the Syzygy host key… This dialog will close when pairing is completed.")
+             : qsTr("Please enter %1 on your host PC. This dialog will close when pairing is completed.").arg(pin)+"\n\n"+
+               qsTr("If your host PC is running Sunshine, navigate to the Sunshine web UI to enter the PIN.")
         standardButtons: Dialog.Cancel
         onRejected: {
             // FIXME: We should interrupt pairing here
+        }
+    }
+
+    NavigableDialog {
+        id: syzygyKeyDialog
+        property int pcIndex: -1
+        property string pcName: ""
+        title: qsTr("Pair with Syzygy")
+        standardButtons: Dialog.Ok | Dialog.Cancel
+
+        function isKeyValid() {
+            return /^[0-9a-fA-F]{48}$/.test(syzygyKeyField.text)
+        }
+
+        onOpened: {
+            syzygyKeyField.forceActiveFocus()
+            if (standardButton) {
+                standardButton(Dialog.Ok).enabled = isKeyValid()
+            }
+        }
+
+        onClosed: syzygyKeyField.clear()
+
+        onAccepted: {
+            if (isKeyValid()) {
+                computerModel.pairComputerWithSyzygyKey(pcIndex, syzygyKeyField.text.toLowerCase())
+                pairDialog.syzygyKeyPairing = true
+                pairDialog.open()
+            }
+        }
+
+        ColumnLayout {
+            Label {
+                text: qsTr("Enter the host key printed by Syzygy with -psk.")
+                wrapMode: Text.Wrap
+                Layout.maximumWidth: 420
+            }
+
+            TextField {
+                id: syzygyKeyField
+                Layout.fillWidth: true
+                placeholderText: qsTr("48-character Syzygy host key")
+                echoMode: TextInput.Password
+                maximumLength: 48
+                selectByMouse: true
+                inputMethodHints: Qt.ImhNoPredictiveText | Qt.ImhNoAutoUppercase
+
+                onTextChanged: {
+                    if (syzygyKeyDialog.standardButton) {
+                        syzygyKeyDialog.standardButton(Dialog.Ok).enabled = syzygyKeyDialog.isKeyValid()
+                    }
+                }
+                Keys.onReturnPressed: syzygyKeyDialog.accept()
+                Keys.onEnterPressed: syzygyKeyDialog.accept()
+            }
+
+            Label {
+                text: qsTr("Eclipse uses the key to verify the host and prove access. The key itself is not sent to the host or saved in Eclipse.")
+                wrapMode: Text.Wrap
+                opacity: 0.75
+                Layout.maximumWidth: 420
+            }
         }
     }
 
