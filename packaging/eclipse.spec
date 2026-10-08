@@ -1,5 +1,5 @@
 Name:           moonlight-eclipse
-Version:        0.5.4
+Version:        0.5.5
 Release:        1%{?dist}
 Summary:        Moonlight streaming client with the Eclipse control center
 License:        GPL-3.0-only
@@ -62,6 +62,9 @@ install -Dpm0644 app/res/moonlight.svg \
 %{_datadir}/icons/hicolor/scalable/apps/moonlight-eclipse.svg
 
 %changelog
+* Thu Oct 08 2026 Eclipse contributors <eclipse@example.invalid> - 0.5.5-1
+- Add a visible Syzygy passkey pairing choice and validate client-bound challenges.
+
 * Wed Oct 07 2026 Eclipse contributors <eclipse@example.invalid> - 0.5.4-1
 - Add Syzygy host-key pairing with server certificate confirmation.
 

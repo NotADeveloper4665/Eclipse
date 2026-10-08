@@ -1,5 +1,6 @@
 #include "nvpairingmanager.h"
 #include "utils.h"
+#include "syzygypairing.h"
 
 #include <stdexcept>
 
@@ -376,17 +377,13 @@ NvPairingManager::pair(QString appVersion, QString pin, QSslCertificate& serverC
 NvPairingManager::PairState
 NvPairingManager::pairWithSyzygyKey(QString key, QSslCertificate& serverCert)
 {
-    if (key.size() != 48) {
-        return PairState::FAILED;
-    }
-    for (const QChar character : key) {
-        if (!((character >= QLatin1Char('0') && character <= QLatin1Char('9')) ||
-              (character >= QLatin1Char('a') && character <= QLatin1Char('f')))) {
-            return PairState::FAILED;
-        }
-    }
+    key = SyzygyPairing::normalizePasskey(key);
+    if (key.isEmpty()) return PairState::FAILED;
 
-    const QString certificateHex = IdentityManager::get()->getCertificate().toHex();
+    // Distinct Eclipse identities allow multiple clients to enroll concurrently.
+    m_Http.setTrueUid(true);
+    const QByteArray certificate = IdentityManager::get()->getCertificate();
+    const QString certificateHex = certificate.toHex();
     QString challengeXml = m_Http.openConnectionToString(
         m_Http.m_BaseUrlHttp,
         "pair",
@@ -400,7 +397,12 @@ NvPairingManager::pairWithSyzygyKey(QString key, QSslCertificate& serverCert)
 
     const QByteArray authMessage = NvHTTP::getXmlStringFromHex(challengeXml, "authmessage");
     const QByteArray serverCertificate = NvHTTP::getXmlStringFromHex(challengeXml, "plaincert");
-    if (authMessage.isEmpty() || serverCertificate.isEmpty()) {
+    const QByteArray expectedMessage = SyzygyPairing::challengeMessage(
+        NvHTTP::getXmlStringFromHex(challengeXml, "challenge"),
+        IdentityManager::get()->getUniqueId().toUtf8(), certificate);
+    // Never sign an arbitrary message supplied by an unauthenticated endpoint.
+    if (expectedMessage.isEmpty() || authMessage != expectedMessage ||
+        serverCertificate.isEmpty() || serverCertificate.size() > 16384) {
         return PairState::FAILED;
     }
 

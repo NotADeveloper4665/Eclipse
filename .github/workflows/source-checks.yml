@@ -22,8 +22,12 @@ jobs:
         run: |
           unzip -q Eclipse-source.zip -d source
           cp -a release-overlay/Eclipse/. source/Eclipse/
-          qmllint source/Eclipse/app/gui/SettingsView.qml source/Eclipse/app/gui/DeviceForwarding.qml source/Eclipse/app/gui/MediaForwarding.qml
+          qmllint source/Eclipse/app/gui/PcView.qml source/Eclipse/app/gui/SettingsView.qml source/Eclipse/app/gui/DeviceForwarding.qml source/Eclipse/app/gui/MediaForwarding.qml
           if grep -R -n -E '^\[.*truncat|^Warning: truncated output|^Total output lines:' --include='*.cpp' --include='*.h' --include='*.qml' source/Eclipse/app; then exit 1; fi
+      - name: Syzygy passkey and transcript checks
+        run: |
+          g++ -std=c++17 -fPIC source/Eclipse/tests/syzygypairing_smoke.cpp -o syzygy-pairing-smoke $(pkg-config --cflags --libs Qt5Core)
+          ./syzygy-pairing-smoke
       - name: Build the client
         run: |
           mkdir build

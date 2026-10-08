@@ -611,7 +611,9 @@ private:
                    emit pairingCompleted(m_Computer, tr("You cannot pair while a previous session is still running on the host PC. Quit any running games or reboot the host PC, then try pairing again."));
                }
                else {
-                   emit pairingCompleted(m_Computer, tr("Pairing failed. Please try again."));
+                   emit pairingCompleted(m_Computer, m_UseSyzygyKey
+                       ? tr("Syzygy passkey pairing failed. Check the passkey and host version, then try again.")
+                       : tr("Pairing failed. Please try again."));
                }
                break;
            case NvPairingManager::PairState::ALREADY_IN_PROGRESS:
@@ -625,7 +627,9 @@ private:
                break;
            }
         } catch (const GfeHttpResponseException& e) {
-            emit pairingCompleted(m_Computer, tr("GeForce Experience returned error: %1").arg(e.toQString()));
+            emit pairingCompleted(m_Computer, m_UseSyzygyKey
+                ? tr("Syzygy pairing failed: %1").arg(e.toQString())
+                : tr("GeForce Experience returned error: %1").arg(e.toQString()));
         } catch (const QtNetworkReplyException& e) {
             emit pairingCompleted(m_Computer, e.toQString());
         }

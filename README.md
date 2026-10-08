@@ -8,6 +8,10 @@ Eclipse 0.5.4 adds key-based pairing for Syzygy hosts. Enter a Syzygy host key f
 
 The settings layout now stacks columns in small windows, wraps forwarding buttons, and collapses device controls by default. A dead build option referencing an absent settings test has been replaced by a working UI integration test mode.
 
+## Syzygy passkey pairing
+
+Start Syzygy on Linux and copy the 48-character passkey shown in the terminal (or retrieve it with `syzygy -psk`). Add the host by IP or local discovery in Eclipse, click its card, select **Syzygy passkey**, and paste it. No host-side PIN entry or web UI approval is required. Anyone with the passkey can enroll with full permissions. Eclipse saves the paired certificate, rather than the passkey, for subsequent connections. The passkey stays the same across host restarts and can enroll multiple clients.
+
 ## Releases
 
 The 0.5.4 source and package builds are running from GitHub Actions. The latest published package remains [Eclipse 0.5.3](https://github.com/NotADeveloper4665/Eclipse/releases/tag/eclipse-0.5.3).

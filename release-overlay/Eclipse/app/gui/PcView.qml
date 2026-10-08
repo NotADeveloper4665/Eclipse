@@ -173,7 +173,7 @@ CenteredGridView {
                     enabled: false
                 }
                 NavigableMenuItem {
-                    text: qsTr("Pair with Syzygy access key…")
+                    text: qsTr("Pair with Syzygy passkey…")
                     visible: model.online && !model.paired && model.serverSupported
                     onTriggered: {
                         syzygyKeyDialog.pcIndex = index
@@ -261,14 +261,9 @@ CenteredGridView {
                     stackView.push(appView)
                 }
                 else {
-                    var pin = computerModel.generatePinString()
-
-                    // Kick off pairing in the background
-                    computerModel.pairComputer(index, pin)
-
-                    // Display the pairing dialog
-                    pairDialog.pin = pin
-                    pairDialog.open()
+                    pairingMethodDialog.pcIndex = index
+                    pairingMethodDialog.pcName = model.name
+                    pairingMethodDialog.open()
                 }
             } else if (!model.online) {
                 // Using open() here because it may be activated by keyboard
@@ -324,7 +319,7 @@ CenteredGridView {
         property string pin : "0000"
         property bool syzygyKeyPairing: false
         text: syzygyKeyPairing
-             ? qsTr("Pairing with the Syzygy host key… This dialog will close when pairing is completed.")
+             ? qsTr("Pairing with the Syzygy passkey… This dialog will close when pairing is completed.")
              : qsTr("Please enter %1 on your host PC. This dialog will close when pairing is completed.").arg(pin)+"\n\n"+
                qsTr("If your host PC is running Sunshine, navigate to the Sunshine web UI to enter the PIN.")
         standardButtons: Dialog.Cancel
@@ -334,14 +329,47 @@ CenteredGridView {
     }
 
     NavigableDialog {
+        id: pairingMethodDialog
+        property int pcIndex: -1
+        property string pcName: ""
+        title: qsTr("Pair with %1").arg(pcName)
+        standardButtons: Dialog.Cancel
+
+        ColumnLayout {
+            Button {
+                text: qsTr("Syzygy passkey")
+                Layout.fillWidth: true
+                onClicked: {
+                    pairingMethodDialog.close()
+                    syzygyKeyDialog.pcIndex = pairingMethodDialog.pcIndex
+                    syzygyKeyDialog.pcName = pairingMethodDialog.pcName
+                    syzygyKeyDialog.open()
+                }
+            }
+            Button {
+                text: qsTr("PIN pairing")
+                Layout.fillWidth: true
+                onClicked: {
+                    pairingMethodDialog.close()
+                    var pin = computerModel.generatePinString()
+                    pairDialog.pin = pin
+                    pairDialog.syzygyKeyPairing = false
+                    pairDialog.open()
+                    computerModel.pairComputer(pairingMethodDialog.pcIndex, pin)
+                }
+            }
+        }
+    }
+
+    NavigableDialog {
         id: syzygyKeyDialog
         property int pcIndex: -1
         property string pcName: ""
-        title: qsTr("Pair with Syzygy")
+        title: qsTr("Syzygy passkey — %1").arg(pcName)
         standardButtons: Dialog.Ok | Dialog.Cancel
 
         function isKeyValid() {
-            return /^[0-9a-fA-F]{48}$/.test(syzygyKeyField.text)
+            return /^[0-9a-fA-F]{48}$/.test(syzygyKeyField.text.trim())
         }
 
         onOpened: {
@@ -351,19 +379,21 @@ CenteredGridView {
             }
         }
 
-        onClosed: syzygyKeyField.clear()
+        onRejected: syzygyKeyField.clear()
 
         onAccepted: {
             if (isKeyValid()) {
-                computerModel.pairComputerWithSyzygyKey(pcIndex, syzygyKeyField.text.toLowerCase())
+                var passkey = syzygyKeyField.text.trim().toLowerCase()
+                syzygyKeyField.clear()
                 pairDialog.syzygyKeyPairing = true
                 pairDialog.open()
+                computerModel.pairComputerWithSyzygyKey(pcIndex, passkey)
             }
         }
 
         ColumnLayout {
             Label {
-                text: qsTr("Enter the host key printed by Syzygy with -psk.")
+                text: qsTr("Paste the passkey shown when Syzygy starts, or run syzygy -psk on the host. Anyone with this passkey can pair with full host permissions.")
                 wrapMode: Text.Wrap
                 Layout.maximumWidth: 420
             }
@@ -371,9 +401,8 @@ CenteredGridView {
             TextField {
                 id: syzygyKeyField
                 Layout.fillWidth: true
-                placeholderText: qsTr("48-character Syzygy host key")
+                placeholderText: qsTr("48-character Syzygy passkey")
                 echoMode: TextInput.Password
-                maximumLength: 48
                 selectByMouse: true
                 inputMethodHints: Qt.ImhNoPredictiveText | Qt.ImhNoAutoUppercase
 
@@ -387,7 +416,7 @@ CenteredGridView {
             }
 
             Label {
-                text: qsTr("Eclipse uses the key to verify the host and prove access. The key itself is not sent to the host or saved in Eclipse.")
+                text: qsTr("Eclipse verifies the host and saves your paired device certificate. The passkey itself is not sent over the network or saved in Eclipse.")
                 wrapMode: Text.Wrap
                 opacity: 0.75
                 Layout.maximumWidth: 420
