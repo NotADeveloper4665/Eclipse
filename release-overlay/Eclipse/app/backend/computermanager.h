@@ -226,8 +226,9 @@ public:
     Q_INVOKABLE void stopPollingAsync();
 
     Q_INVOKABLE void addNewHostManually(QString address);
+    Q_INVOKABLE void addNewHostManuallyWithSyzygyKey(QString address, QString passkey);
 
-    void addNewHost(NvAddress address, bool mdns, QString name = QString(), NvAddress mdnsIpv6Address = NvAddress());
+    void addNewHost(NvAddress address, bool mdns, QString name = QString(), NvAddress mdnsIpv6Address = NvAddress(), QString syzygyPasskey = QString());
 
     QString generatePinString();
 
@@ -251,6 +252,7 @@ signals:
     void pairingCompleted(NvComputer* computer, QString error);
 
     void computerAddCompleted(QVariant success, QVariant detectedPortBlocking);
+    void manualHostPairingCompleted(QString error);
 
     void quitAppCompleted(QVariant error);
 

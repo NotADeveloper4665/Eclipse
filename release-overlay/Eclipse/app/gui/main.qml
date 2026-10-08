@@ -655,44 +655,138 @@ ApplicationWindow {
         }
     }
 
+    Connections {
+        target: ComputerManager
+        onManualHostPairingCompleted: {
+            addAndPairProgress.close()
+            if (error) {
+                addAndPairError.text = error
+                addAndPairError.open()
+            } else {
+                addAndPairSuccess.open()
+            }
+        }
+    }
+
+    NavigableMessageDialog {
+        id: addAndPairProgress
+        text: qsTr("Connecting to the host and pairing with your Syzygy passkey…")
+        standardButtons: Dialog.NoButton
+        closePolicy: Popup.NoAutoClose
+    }
+
+    ErrorMessageDialog {
+        id: addAndPairError
+        helpText: ""
+    }
+
+    NavigableMessageDialog {
+        id: addAndPairSuccess
+        text: qsTr("Host added and paired. Select it to start streaming.")
+        standardButtons: Dialog.Ok
+    }
+
     NavigableDialog {
         id: addPcDialog
-        property string label: qsTr("Enter the IP address of your host PC:")
-
+        objectName: "addPcDialog"
+        title: qsTr("Add PC")
+        width: Math.min(window.width - 40, 440)
+        property bool addressLooksLikePasskey: /^[0-9a-fA-F]{48}$/.test(editText.text.trim())
+        property bool validInput: editText.text.trim().length > 0 && !addressLooksLikePasskey &&
+                                 (addPcPasskey.text.trim().length === 0 || /^[0-9a-fA-F]{48}$/.test(addPcPasskey.text.trim()))
         standardButtons: Dialog.Ok | Dialog.Cancel
 
+        function updateAcceptButton() {
+            if (standardButton(Dialog.Ok)) {
+                standardButton(Dialog.Ok).enabled = validInput
+                standardButton(Dialog.Ok).text = addPcPasskey.text.trim().length > 0 ? qsTr("Add and pair") : qsTr("Add PC")
+            }
+        }
+        onValidInputChanged: updateAcceptButton()
         onOpened: {
-            // Force keyboard focus on the textbox so keyboard navigation works
+            updateAcceptButton()
             editText.forceActiveFocus()
         }
-
-        onClosed: {
+        onRejected: {
             editText.clear()
+            addPcPasskey.clear()
         }
-
         onAccepted: {
-            if (editText.text) {
-                ComputerManager.addNewHostManually(editText.text.trim())
+            if (!validInput) return
+            var address = editText.text.trim()
+            var passkey = addPcPasskey.text.trim()
+            editText.clear()
+            addPcPasskey.clear()
+            if (passkey.length > 0) {
+                addAndPairProgress.open()
+                ComputerManager.addNewHostManuallyWithSyzygyKey(address, passkey)
+            } else {
+                ComputerManager.addNewHostManually(address)
             }
         }
 
         ColumnLayout {
+            width: parent.width
+            spacing: 12
             Label {
-                text: addPcDialog.label
+                text: qsTr("Host IP address or hostname")
                 font.bold: true
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
             }
-
             TextField {
                 id: editText
+                objectName: "addPcAddressField"
                 Layout.fillWidth: true
-                focus: true
-
-                Keys.onReturnPressed: {
-                    addPcDialog.accept()
-                }
-
-                Keys.onEnterPressed: {
-                    addPcDialog.accept()
+                placeholderText: qsTr("192.168.1.100 or host:port")
+                selectByMouse: true
+                inputMethodHints: Qt.ImhNoPredictiveText | Qt.ImhNoAutoUppercase
+                Keys.onReturnPressed: { if (addPcDialog.validInput) addPcDialog.accept() }
+                Keys.onEnterPressed: { if (addPcDialog.validInput) addPcDialog.accept() }
+            }
+            Label {
+                visible: addPcDialog.addressLooksLikePasskey
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
+                text: qsTr("That looks like a passkey. Paste it below and enter your host's IP address above.")
+                color: Material.accent
+            }
+            GroupBox {
+                title: qsTr("Syzygy passkey (optional)")
+                Layout.fillWidth: true
+                ColumnLayout {
+                    width: parent.width
+                    spacing: 8
+                    TextField {
+                        id: addPcPasskey
+                        objectName: "addPcPasskeyField"
+                        Layout.fillWidth: true
+                        placeholderText: qsTr("Paste the 48-character passkey")
+                        echoMode: TextInput.Password
+                        selectByMouse: true
+                        inputMethodHints: Qt.ImhNoPredictiveText | Qt.ImhNoAutoUppercase | Qt.ImhSensitiveData
+                        onTextChanged: addPcDialog.updateAcceptButton()
+                        Keys.onReturnPressed: { if (addPcDialog.validInput) addPcDialog.accept() }
+                        Keys.onEnterPressed: { if (addPcDialog.validInput) addPcDialog.accept() }
+                    }
+                    Label {
+                        Layout.fillWidth: true
+                        wrapMode: Text.Wrap
+                        text: qsTr("Enter the passkey displayed when Syzygy starts to add and pair this host without a PIN. The IP address above tells Eclipse where to connect.")
+                    }
+                    Label {
+                        visible: addPcPasskey.text.trim().length > 0 && !/^[0-9a-fA-F]{48}$/.test(addPcPasskey.text.trim())
+                        Layout.fillWidth: true
+                        wrapMode: Text.Wrap
+                        text: qsTr("The passkey must contain exactly 48 hexadecimal characters.")
+                        color: Material.accent
+                    }
+                    Label {
+                        Layout.fillWidth: true
+                        wrapMode: Text.Wrap
+                        opacity: 0.75
+                        text: qsTr("Leave this blank for PIN pairing. Anyone with the passkey can pair with full host permissions.")
+                    }
                 }
             }
         }

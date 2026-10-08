@@ -2,6 +2,7 @@
 #include "boxartmanager.h"
 #include "nvhttp.h"
 #include "nvpairingmanager.h"
+#include "syzygypairing.h"
 
 #include <Limelight.h>
 #include <QtEndian>
@@ -742,17 +743,31 @@ void ComputerManager::stopPollingAsync()
 
 void ComputerManager::addNewHostManually(QString address)
 {
+    addNewHostManuallyWithSyzygyKey(address, QString());
+}
+
+void ComputerManager::addNewHostManuallyWithSyzygyKey(QString address, QString passkey)
+{
+    if (!passkey.trimmed().isEmpty()) {
+        passkey = SyzygyPairing::normalizePasskey(passkey);
+        if (passkey.isEmpty()) {
+            emit manualHostPairingCompleted(tr("Enter the 48-character Syzygy passkey shown on your host."));
+            return;
+        }
+    }
+    address = address.trimmed();
     QUrl url = QUrl::fromUserInput("moonlight://" + address);
     if (url.isValid() && !url.host().isEmpty() && url.scheme() == "moonlight") {
         // If there wasn't a port specified, use the default
-        addNewHost(NvAddress(url.host(), url.port(DEFAULT_HTTP_PORT)), false);
+        addNewHost(NvAddress(url.host(), url.port(DEFAULT_HTTP_PORT)), false, QString(), NvAddress(), passkey);
     }
     else if (QHostAddress(address).protocol() == QAbstractSocket::IPv6Protocol) {
         // The user specified an IPv6 literal without URL escaping, so use the default port
-        addNewHost(NvAddress(address, DEFAULT_HTTP_PORT), false);
+        addNewHost(NvAddress(address, DEFAULT_HTTP_PORT), false, QString(), NvAddress(), passkey);
     }
     else {
-        emit computerAddCompleted(false, false);
+        if (!passkey.isEmpty()) emit manualHostPairingCompleted(tr("Enter a valid host IP address or hostname."));
+        else emit computerAddCompleted(false, false);
     }
 }
 
@@ -761,9 +776,10 @@ class PendingAddTask : public QObject, public QRunnable
     Q_OBJECT
 
 public:
-    PendingAddTask(ComputerManager* computerManager, QString name, NvAddress address, NvAddress mdnsIpv6Address, bool mdns)
+    PendingAddTask(ComputerManager* computerManager, QString name, NvAddress address, NvAddress mdnsIpv6Address, bool mdns, QString syzygyPasskey)
         : m_ComputerManager(computerManager),
           m_Name(name),
+          m_SyzygyPasskey(syzygyPasskey),
           m_Address(address),
           m_MdnsIpv6Address(mdnsIpv6Address),
           m_Mdns(mdns),
@@ -771,6 +787,8 @@ public:
     {
         connect(this, &PendingAddTask::computerAddCompleted,
                 computerManager, &ComputerManager::computerAddCompleted);
+        connect(this, &PendingAddTask::manualHostPairingCompleted,
+                computerManager, &ComputerManager::manualHostPairingCompleted);
         connect(this, &PendingAddTask::computerStateChanged,
                 computerManager, &ComputerManager::handleComputerStateChanged);
         connect(QCoreApplication::instance(), &QCoreApplication::aboutToQuit,
@@ -781,6 +799,7 @@ signals:
     void computerAddCompleted(QVariant success, QVariant detectedPortBlocking);
 
     void computerStateChanged(NvComputer* computer);
+    void manualHostPairingCompleted(QString error);
 
 private:
     void handleAboutToQuit()
@@ -831,7 +850,8 @@ private:
                     portTestResult = 0;
                 }
 
-                emit computerAddCompleted(false, portTestResult != 0 && portTestResult != ML_TEST_RESULT_INCONCLUSIVE);
+                if (!m_SyzygyPasskey.isEmpty()) emit manualHostPairingCompleted(tr("Unable to reach the host. Check its address and make sure Syzygy is running."));
+                else emit computerAddCompleted(false, portTestResult != 0 && portTestResult != ML_TEST_RESULT_INCONCLUSIVE);
             }
             return QString();
         }
@@ -923,6 +943,22 @@ private:
             newComputer->manualAddress = m_Address;
         }
 
+        if (!m_SyzygyPasskey.isEmpty()) {
+            try {
+                NvPairingManager pairing(newComputer);
+                if (pairing.pairWithSyzygyKey(m_SyzygyPasskey, newComputer->serverCert) != NvPairingManager::PAIRED) {
+                    delete newComputer;
+                    emit manualHostPairingCompleted(tr("Syzygy pairing failed. Check the passkey and host version, then try again."));
+                    return;
+                }
+                newComputer->pairState = NvComputer::PS_PAIRED;
+            } catch (const std::exception& error) {
+                delete newComputer;
+                emit manualHostPairingCompleted(tr("Syzygy pairing failed: %1").arg(QString::fromUtf8(error.what())));
+                return;
+            }
+        }
+
         QHostAddress hostAddress(m_Address.address());
         bool addressIsSiteLocalV4 =
                 hostAddress.isInSubnet(QHostAddress("10.0.0.0"), 8) ||
@@ -999,21 +1035,23 @@ private:
                 emit computerStateChanged(newComputer);
             }
         }
+        if (!m_SyzygyPasskey.isEmpty()) emit manualHostPairingCompleted(QString());
     }
 
     ComputerManager* m_ComputerManager;
     QString m_Name;
+    QString m_SyzygyPasskey;
     NvAddress m_Address;
     NvAddress m_MdnsIpv6Address;
     bool m_Mdns;
     bool m_AboutToQuit;
 };
 
-void ComputerManager::addNewHost(NvAddress address, bool mdns, QString name, NvAddress mdnsIpv6Address)
+void ComputerManager::addNewHost(NvAddress address, bool mdns, QString name, NvAddress mdnsIpv6Address, QString syzygyPasskey)
 {
     // Punt to a worker thread to avoid stalling the
     // UI while waiting for serverinfo query to complete
-    PendingAddTask* addTask = new PendingAddTask(this, name, address, mdnsIpv6Address, mdns);
+    PendingAddTask* addTask = new PendingAddTask(this, name, address, mdnsIpv6Address, mdns, syzygyPasskey);
     QThreadPool::globalInstance()->start(addTask);
 }
 

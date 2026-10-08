@@ -869,29 +869,45 @@ Flickable {
                         ToolTip.text: qsTr("Frame pacing reduces micro-stutter by delaying frames that come in too early")
                     }
 
-                    Label {
-                        width: parent.width
-                        text: qsTr("Minimum latency: %1 ms").arg(Math.round(minimumLatencySlider.value))
-                        font.pointSize: 12
-                        wrapMode: Text.Wrap
-                    }
+                }
 
-                    Label {
-                        width: parent.width
-                        text: qsTr("Add a steady delay before displaying frames to absorb network or host capture jitter. Higher values can reduce stutter but add latency.")
-                        font.pointSize: 9
-                        wrapMode: Text.Wrap
-                    }
+                GroupBox {
+                    id: frameBufferingGroup
+                    objectName: "frameBufferingGroup"
+                    width: parent.width
+                    padding: 12
+                    title: "<font color=\"skyblue\">" + qsTr("Frame buffering") + "</font>"
+                    font.pointSize: 12
 
-                    Slider {
-                        id: minimumLatencySlider
-                        width: parent.width
-                        from: 0
-                        to: 50
-                        stepSize: 1
-                        snapMode: Slider.SnapAlways
-                        value: StreamingPreferences.minimumLatency
-                        onValueChanged: StreamingPreferences.minimumLatency = Math.round(value)
+                    Column {
+                        anchors.fill: parent
+                        spacing: 5
+                        Label {
+                            width: parent.width
+                            text: qsTr("Minimum latency: %1 ms").arg(Math.round(minimumLatencySlider.value))
+                            font.pointSize: 12
+                            wrapMode: Text.Wrap
+                        }
+
+                        Label {
+                            width: parent.width
+                            objectName: "minimumLatencyDescription"
+                            text: qsTr("Add a steady delay before displaying frames to absorb network or host capture jitter. Higher values can reduce stutter but add latency.")
+                            font.pointSize: 9
+                            wrapMode: Text.Wrap
+                        }
+
+                        Slider {
+                            id: minimumLatencySlider
+                            objectName: "minimumLatencySlider"
+                            width: parent.width
+                            from: 0
+                            to: 50
+                            stepSize: 1
+                            snapMode: Slider.SnapAlways
+                            value: StreamingPreferences.minimumLatency
+                            onValueChanged: StreamingPreferences.minimumLatency = Math.round(value)
+                        }
                     }
                 }
 
@@ -1478,7 +1494,7 @@ Flickable {
                         ListElement {
                             text: qsTr("Maximized")
                             val: StreamingPreferences.UI_MAXIMIZED
-                        }   
+                        }
                         ListElement {
                             text: qsTr("Fullscreen")
                             val: StreamingPreferences.UI_FULLSCREEN

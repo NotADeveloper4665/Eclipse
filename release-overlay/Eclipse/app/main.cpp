@@ -4,6 +4,7 @@
 #include <QQmlContext>
 #include <QIcon>
 #include <QQuickStyle>
+#include <QQuickItem>
 #include <QMutex>
 #include <QtDebug>
 #include <QNetworkProxyFactory>
@@ -1088,6 +1089,33 @@ int main(int argc, char *argv[])
                 qFatal("Forwarding controls failed to instantiate");
             if (!QMetaObject::invokeMethod(root, "openSettingsView") || root->findChildren<QObject*>(QObject::tr("Settings")).size() != 1)
                 qFatal("Duplicate settings route created another page");
+            auto* buffering = qobject_cast<QQuickItem*>(root->findChild<QObject*>("frameBufferingGroup"));
+            auto* description = qobject_cast<QQuickItem*>(root->findChild<QObject*>("minimumLatencyDescription"));
+            auto* latency = qobject_cast<QQuickItem*>(root->findChild<QObject*>("minimumLatencySlider"));
+            if (!buffering || !description || !latency) qFatal("Frame buffering controls did not instantiate");
+            for (QQuickItem* control : {description, latency}) {
+                const QPointF position = control->mapToItem(buffering, QPointF());
+                if (position.x() < 0 || position.y() < 0 ||
+                    position.x() + control->width() > buffering->width() + 1 ||
+                    position.y() + control->height() > buffering->height() + 1)
+                    qFatal("Frame buffering control escaped its group");
+            }
+            QObject* addDialog = root->findChild<QObject*>("addPcDialog");
+            QObject* addressField = root->findChild<QObject*>("addPcAddressField");
+            QObject* passkeyField = root->findChild<QObject*>("addPcPasskeyField");
+            if (!addDialog || !addressField || !passkeyField) qFatal("Add PC passkey fields missing");
+            if (!QMetaObject::invokeMethod(addDialog, "open")) qFatal("Add PC dialog did not open");
+            addressField->setProperty("text", "192.168.1.100");
+            if (!addDialog->property("validInput").toBool()) qFatal("Address-only add was disabled");
+            passkeyField->setProperty("text", "invalid-key");
+            if (addDialog->property("validInput").toBool()) qFatal("Invalid passkey was accepted");
+            passkeyField->setProperty("text", " " + QString(48, 'A') + " ");
+            if (!addDialog->property("validInput").toBool()) qFatal("Valid pasted passkey was rejected");
+            addressField->setProperty("text", "");
+            if (addDialog->property("validInput").toBool()) qFatal("Passkey without a host address was accepted");
+            if (!QMetaObject::invokeMethod(addDialog, "reject")) qFatal("Add PC dialog did not close");
+            if (!passkeyField->property("text").toString().isEmpty()) qFatal("Canceled dialog retained passkey");
+            qInfo() << "Eclipse frame buffering containment and Add PC passkey runtime tests passed";
             qInfo() << "Eclipse settings runtime test passed";
             app.exit(0);
         });

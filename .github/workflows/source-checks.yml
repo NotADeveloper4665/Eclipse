@@ -22,7 +22,7 @@ jobs:
         run: |
           unzip -q Eclipse-source.zip -d source
           cp -a release-overlay/Eclipse/. source/Eclipse/
-          qmllint source/Eclipse/app/gui/PcView.qml source/Eclipse/app/gui/SettingsView.qml source/Eclipse/app/gui/DeviceForwarding.qml source/Eclipse/app/gui/MediaForwarding.qml
+          qmllint source/Eclipse/app/gui/main.qml source/Eclipse/app/gui/PcView.qml source/Eclipse/app/gui/SettingsView.qml source/Eclipse/app/gui/DeviceForwarding.qml source/Eclipse/app/gui/MediaForwarding.qml
           if grep -R -n -E '^\[.*truncat|^Warning: truncated output|^Total output lines:' --include='*.cpp' --include='*.h' --include='*.qml' source/Eclipse/app; then exit 1; fi
       - name: Syzygy passkey and transcript checks
         run: |
