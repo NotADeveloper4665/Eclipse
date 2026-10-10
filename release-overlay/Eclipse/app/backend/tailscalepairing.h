@@ -4,7 +4,6 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonArray>
-#include <QHostInfo>
 #include <QHostAddress>
 
 namespace SyzygyPairing {
@@ -31,7 +30,11 @@ inline bool localTailnetPeer(const QString& host)
     const auto suffix = "." + status.value("CurrentTailnet").toObject().value("MagicDNSSuffix").toString() + ".";
     if (suffix.size() < 4) return false;
     const auto peers = status.value("Peer").toObject();
-    const auto addresses = QHostInfo::fromName(host).addresses();
+    // Bind the trust check to the exact literal endpoint used by HTTP/TLS.
+    // A separately resolved hostname could change between lookup and pairing.
+    const QHostAddress literal(host);
+    if (literal.isNull()) return false;
+    const QList<QHostAddress> addresses {literal};
     for (const auto& address : addresses) {
         for (auto it = peers.begin(); it != peers.end(); ++it) {
             const auto peer = it.value().toObject();

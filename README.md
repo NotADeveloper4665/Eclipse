@@ -33,3 +33,7 @@ Automatic Tailscale enrollment currently requires a Linux Eclipse client with
 `/usr/bin/tailscale` and a root-owned `/run/tailscale/tailscaled.sock`. The client
 checks the host against its local daemon before trusting auto-enrollment. Other
 platforms can pair using the generated phrase.
+
+For automatic enrollment, enter the host's literal Tailscale IP address.
+Hostnames use phrase pairing to avoid trusting a destination that can change
+between the identity check and the connection.
