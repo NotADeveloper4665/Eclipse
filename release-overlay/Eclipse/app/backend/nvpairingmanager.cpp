@@ -1,6 +1,7 @@
 #include "nvpairingmanager.h"
 #include "utils.h"
 #include "syzygypairing.h"
+#include "tailscalepairing.h"
 
 #include <stdexcept>
 
@@ -209,6 +210,10 @@ NvPairingManager::saltPin(const QByteArray& salt, QString pin)
 NvPairingManager::PairState
 NvPairingManager::pair(QString appVersion, QString pin, QSslCertificate& serverCert)
 {
+    const auto serverInfo = m_Http.getServerInfo(NvHTTP::NVLL_NONE, true);
+    if (NvHTTP::getXmlString(serverInfo, "syzygy_tails_pairing") == "1" &&
+        SyzygyPairing::localTailnetPeer(m_Http.m_BaseUrlHttp.host()))
+        return pairWithSyzygyKey({}, serverCert, true);
     int serverMajorVersion = NvHTTP::parseQuad(appVersion).at(0);
     qInfo() << "Pairing with server generation:" << serverMajorVersion;
 
@@ -375,10 +380,11 @@ NvPairingManager::pair(QString appVersion, QString pin, QSslCertificate& serverC
 }
 
 NvPairingManager::PairState
-NvPairingManager::pairWithSyzygyKey(QString key, QSslCertificate& serverCert)
+NvPairingManager::pairWithSyzygyKey(QString key, QSslCertificate& serverCert, bool tails)
 {
-    key = SyzygyPairing::normalizePasskey(key);
-    if (key.isEmpty()) return PairState::FAILED;
+    key = tails ? QString() : SyzygyPairing::normalizePasskey(key);
+    if (!tails && key.isEmpty()) return PairState::FAILED;
+    const QString mode = tails ? "&syzygytails=1" : "";
 
     // Distinct Eclipse identities allow multiple clients to enroll concurrently.
     m_Http.setTrueUid(true);
@@ -387,7 +393,7 @@ NvPairingManager::pairWithSyzygyKey(QString key, QSslCertificate& serverCert)
     QString challengeXml = m_Http.openConnectionToString(
         m_Http.m_BaseUrlHttp,
         "pair",
-        "devicename=Eclipse&syzygyphase=challenge&clientcert=" + certificateHex,
+        "devicename=Eclipse&syzygyphase=challenge&clientcert=" + certificateHex + mode,
         REQUEST_TIMEOUT_MS,
         NvHTTP::NVLL_NONE);
     NvHTTP::verifyResponseStatus(challengeXml);
@@ -406,11 +412,11 @@ NvPairingManager::pairWithSyzygyKey(QString key, QSslCertificate& serverCert)
         return PairState::FAILED;
     }
 
-    const QByteArray keyBytes = key.toLatin1();
-    const QByteArray clientProof = QMessageAuthenticationCode::hash(
+    const QByteArray keyBytes = tails ? QByteArray() : SyzygyPairing::phraseKey(key);
+    const QByteArray clientProof = tails ? QByteArray() : QMessageAuthenticationCode::hash(
         authMessage, keyBytes, QCryptographicHash::Sha256).toHex();
     const QByteArray clientSignature = signMessage(authMessage).toHex();
-    if (clientProof.size() != 64 || clientSignature.isEmpty()) {
+    if ((!tails && clientProof.size() != 64) || clientSignature.isEmpty()) {
         return PairState::FAILED;
     }
 
@@ -419,7 +425,7 @@ NvPairingManager::pairWithSyzygyKey(QString key, QSslCertificate& serverCert)
         "pair",
         "devicename=Eclipse&syzygyphase=response&clientcert=" + certificateHex +
             "&syzygyproof=" + QString::fromLatin1(clientProof) +
-            "&clientsignature=" + QString::fromLatin1(clientSignature),
+            "&clientsignature=" + QString::fromLatin1(clientSignature) + mode,
         REQUEST_TIMEOUT_MS,
         NvHTTP::NVLL_NONE);
     NvHTTP::verifyResponseStatus(responseXml);
@@ -433,8 +439,10 @@ NvPairingManager::pairWithSyzygyKey(QString key, QSslCertificate& serverCert)
     const QByteArray expectedServerProof = QMessageAuthenticationCode::hash(
         confirmationMessage, keyBytes, QCryptographicHash::Sha256).toHex();
     const QByteArray serverProof = NvHTTP::getXmlString(responseXml, "serverproof").toLatin1();
-    if (serverProof.size() != expectedServerProof.size() ||
-        CRYPTO_memcmp(serverProof.constData(), expectedServerProof.constData(), expectedServerProof.size()) != 0) {
+    if (tails ? !verifySignature(authMessage + serverCertificate,
+            NvHTTP::getXmlStringFromHex(responseXml, "serversignature"), serverCertificate) :
+        (serverProof.size() != expectedServerProof.size() ||
+        CRYPTO_memcmp(serverProof.constData(), expectedServerProof.constData(), expectedServerProof.size()) != 0)) {
         qWarning() << "Syzygy host-key confirmation failed";
         return PairState::FAILED;
     }

@@ -670,7 +670,7 @@ ApplicationWindow {
 
     NavigableMessageDialog {
         id: addAndPairProgress
-        text: qsTr("Connecting to the host and pairing with your Syzygy passkey…")
+        text: qsTr("Connecting to the host and pairing with your Syzygy pairing phrase…")
         standardButtons: Dialog.NoButton
         closePolicy: Popup.NoAutoClose
     }
@@ -691,9 +691,9 @@ ApplicationWindow {
         objectName: "addPcDialog"
         title: qsTr("Add PC")
         width: Math.min(window.width - 40, 440)
-        property bool addressLooksLikePasskey: /^[0-9a-fA-F]{48}$/.test(editText.text.trim())
+        property bool addressLooksLikePasskey: /^[a-zA-Z]{1,9}(?:[\s-]+[a-zA-Z]{1,9}){5}$/.test(editText.text.trim())
         property bool validInput: editText.text.trim().length > 0 && !addressLooksLikePasskey &&
-                                 (addPcPasskey.text.trim().length === 0 || /^[0-9a-fA-F]{48}$/.test(addPcPasskey.text.trim()))
+                                 (addPcPasskey.text.trim().length === 0 || /^[a-zA-Z]{1,9}(?:[\s-]+[a-zA-Z]{1,9}){5}$/.test(addPcPasskey.text.trim()))
         standardButtons: Dialog.Ok | Dialog.Cancel
 
         function updateAcceptButton() {
@@ -752,7 +752,7 @@ ApplicationWindow {
                 color: Material.accent
             }
             GroupBox {
-                title: qsTr("Syzygy passkey (optional)")
+                title: qsTr("Syzygy pairing phrase (optional)")
                 Layout.fillWidth: true
                 ColumnLayout {
                     width: parent.width
@@ -761,7 +761,7 @@ ApplicationWindow {
                         id: addPcPasskey
                         objectName: "addPcPasskeyField"
                         Layout.fillWidth: true
-                        placeholderText: qsTr("Paste the 48-character passkey")
+                        placeholderText: qsTr("Paste the six-word pairing phrase")
                         echoMode: TextInput.Password
                         selectByMouse: true
                         inputMethodHints: Qt.ImhNoPredictiveText | Qt.ImhNoAutoUppercase | Qt.ImhSensitiveData
@@ -775,10 +775,10 @@ ApplicationWindow {
                         text: qsTr("Enter the passkey displayed when Syzygy starts to add and pair this host without a PIN. The IP address above tells Eclipse where to connect.")
                     }
                     Label {
-                        visible: addPcPasskey.text.trim().length > 0 && !/^[0-9a-fA-F]{48}$/.test(addPcPasskey.text.trim())
+                        visible: addPcPasskey.text.trim().length > 0 && !/^[a-zA-Z]{1,9}(?:[\s-]+[a-zA-Z]{1,9}){5}$/.test(addPcPasskey.text.trim())
                         Layout.fillWidth: true
                         wrapMode: Text.Wrap
-                        text: qsTr("The passkey must contain exactly 48 hexadecimal characters.")
+                        text: qsTr("The passkey must contain six words separated by spaces or hyphens.")
                         color: Material.accent
                     }
                     Label {

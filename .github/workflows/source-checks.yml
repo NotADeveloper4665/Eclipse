@@ -26,7 +26,7 @@ jobs:
           if grep -R -n -E '^\[.*truncat|^Warning: truncated output|^Total output lines:' --include='*.cpp' --include='*.h' --include='*.qml' source/Eclipse/app; then exit 1; fi
       - name: Syzygy passkey and transcript checks
         run: |
-          g++ -std=c++17 -fPIC source/Eclipse/tests/syzygypairing_smoke.cpp -o syzygy-pairing-smoke $(pkg-config --cflags --libs Qt5Core)
+          g++ -std=c++17 -fPIC source/Eclipse/tests/syzygypairing_smoke.cpp -o syzygy-pairing-smoke $(pkg-config --cflags --libs Qt5Core) -lcrypto
           ./syzygy-pairing-smoke
       - name: Build the client
         run: |

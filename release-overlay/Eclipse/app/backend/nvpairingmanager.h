@@ -25,7 +25,7 @@ public:
     pair(QString appVersion, QString pin, QSslCertificate& serverCert);
 
     PairState
-    pairWithSyzygyKey(QString key, QSslCertificate& serverCert);
+    pairWithSyzygyKey(QString key, QSslCertificate& serverCert, bool tails = false);
 
 private:
     QByteArray

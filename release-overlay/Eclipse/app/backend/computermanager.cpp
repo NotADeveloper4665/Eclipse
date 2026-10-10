@@ -613,7 +613,7 @@ private:
                }
                else {
                    emit pairingCompleted(m_Computer, m_UseSyzygyKey
-                       ? tr("Syzygy passkey pairing failed. Check the passkey and host version, then try again.")
+                       ? tr("Syzygy pairing phrase pairing failed. Check the passkey and host version, then try again.")
                        : tr("Pairing failed. Please try again."));
                }
                break;
@@ -751,7 +751,7 @@ void ComputerManager::addNewHostManuallyWithSyzygyKey(QString address, QString p
     if (!passkey.trimmed().isEmpty()) {
         passkey = SyzygyPairing::normalizePasskey(passkey);
         if (passkey.isEmpty()) {
-            emit manualHostPairingCompleted(tr("Enter the 48-character Syzygy passkey shown on your host."));
+            emit manualHostPairingCompleted(tr("Enter the six-word Syzygy pairing phrase shown on your host."));
             return;
         }
     }

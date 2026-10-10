@@ -3,17 +3,34 @@
 #include <QByteArray>
 #include <QCryptographicHash>
 #include <QString>
+#include <QRegularExpression>
+#include <openssl/evp.h>
+#include <openssl/crypto.h>
+#include <stdexcept>
 
 namespace SyzygyPairing {
 inline QString normalizePasskey(QString key)
 {
-    key = key.trimmed().toLower();
-    if (key.size() != 48) return {};
-    for (const QChar character : key) {
-        if (!((character >= QLatin1Char('0') && character <= QLatin1Char('9')) ||
-              (character >= QLatin1Char('a') && character <= QLatin1Char('f')))) return {};
-    }
+    if (key.size() > 128) return {};
+    key = key.toLower().replace('-', ' ').simplified();
+    if (!QRegularExpression("^[a-z]{1,9}( [a-z]{1,9}){5}$").match(key).hasMatch()) return {};
     return key;
+}
+
+inline QByteArray phraseKey(const QString& phrase)
+{
+    const QByteArray normalized = normalizePasskey(phrase).toLatin1();
+    if (normalized.isEmpty()) return {};
+    const QByteArray salt("Syzygy pairing phrase v2");
+    QByteArray key(24, 0);
+    if (EVP_PBE_scrypt(normalized.constData(), normalized.size(),
+            reinterpret_cast<const unsigned char*>(salt.constData()), salt.size(),
+            32768, 8, 1, 64 * 1024 * 1024,
+            reinterpret_cast<unsigned char*>(key.data()), key.size()) != 1)
+        throw std::runtime_error("Pairing phrase derivation failed");
+    const auto hex = key.toHex();
+    OPENSSL_cleanse(key.data(), key.size());
+    return hex;
 }
 
 inline QByteArray challengeMessage(const QByteArray& nonce, const QByteArray& uniqueId,

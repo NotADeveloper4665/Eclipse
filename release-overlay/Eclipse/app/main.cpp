@@ -1109,7 +1109,7 @@ int main(int argc, char *argv[])
             if (!addDialog->property("validInput").toBool()) qFatal("Address-only add was disabled");
             passkeyField->setProperty("text", "invalid-key");
             if (addDialog->property("validInput").toBool()) qFatal("Invalid passkey was accepted");
-            passkeyField->setProperty("text", " " + QString(48, 'A') + " ");
+            passkeyField->setProperty("text", " ABACUS-abacus ABACUS abacus abacus abacus ");
             if (!addDialog->property("validInput").toBool()) qFatal("Valid pasted passkey was rejected");
             addressField->setProperty("text", "");
             if (addDialog->property("validInput").toBool()) qFatal("Passkey without a host address was accepted");

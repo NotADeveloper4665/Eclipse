@@ -173,7 +173,7 @@ CenteredGridView {
                     enabled: false
                 }
                 NavigableMenuItem {
-                    text: qsTr("Pair with Syzygy passkey…")
+                    text: qsTr("Pair with Syzygy pairing phrase…")
                     visible: model.online && !model.paired && model.serverSupported
                     onTriggered: {
                         syzygyKeyDialog.pcIndex = index
@@ -319,7 +319,7 @@ CenteredGridView {
         property string pin : "0000"
         property bool syzygyKeyPairing: false
         text: syzygyKeyPairing
-             ? qsTr("Pairing with the Syzygy passkey… This dialog will close when pairing is completed.")
+             ? qsTr("Pairing with the Syzygy pairing phrase… This dialog will close when pairing is completed.")
              : qsTr("Please enter %1 on your host PC. This dialog will close when pairing is completed.").arg(pin)+"\n\n"+
                qsTr("If your host PC is running Sunshine, navigate to the Sunshine web UI to enter the PIN.")
         standardButtons: Dialog.Cancel
@@ -337,7 +337,7 @@ CenteredGridView {
 
         ColumnLayout {
             Button {
-                text: qsTr("Syzygy passkey")
+                text: qsTr("Syzygy pairing phrase")
                 Layout.fillWidth: true
                 onClicked: {
                     pairingMethodDialog.close()
@@ -365,11 +365,11 @@ CenteredGridView {
         id: syzygyKeyDialog
         property int pcIndex: -1
         property string pcName: ""
-        title: qsTr("Syzygy passkey — %1").arg(pcName)
+        title: qsTr("Syzygy pairing phrase — %1").arg(pcName)
         standardButtons: Dialog.Ok | Dialog.Cancel
 
         function isKeyValid() {
-            return /^[0-9a-fA-F]{48}$/.test(syzygyKeyField.text.trim())
+            return /^[a-zA-Z]{1,9}(?:[\s-]+[a-zA-Z]{1,9}){5}$/.test(syzygyKeyField.text.trim())
         }
 
         onOpened: {
@@ -401,7 +401,7 @@ CenteredGridView {
             TextField {
                 id: syzygyKeyField
                 Layout.fillWidth: true
-                placeholderText: qsTr("48-character Syzygy passkey")
+                placeholderText: qsTr("six-word Syzygy pairing phrase")
                 echoMode: TextInput.Password
                 selectByMouse: true
                 inputMethodHints: Qt.ImhNoPredictiveText | Qt.ImhNoAutoUppercase

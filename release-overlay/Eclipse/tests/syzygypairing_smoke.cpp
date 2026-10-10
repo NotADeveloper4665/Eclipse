@@ -11,10 +11,10 @@ void require(bool valid, const char* message)
 int main()
 {
     try {
-        require(SyzygyPairing::normalizePasskey(" \n" + QString(48, 'A') + "\n") == QString(48, 'a'), "normalize pasted passkey");
-        require(SyzygyPairing::normalizePasskey(QString(48, 'g')).isEmpty(), "reject non-hex passkey");
-        require(SyzygyPairing::normalizePasskey(QString(47, 'a')).isEmpty(), "reject short passkey");
-        require(SyzygyPairing::normalizePasskey(QString(49, 'a')).isEmpty(), "reject extra characters");
+        const QString phrase("abacus abacus abacus abacus abacus abacus");
+        require(SyzygyPairing::normalizePasskey(" ABACUS-abacus ABACUS abacus abacus abacus ") == phrase, "normalize phrase");
+        require(SyzygyPairing::normalizePasskey(QString(48, 'a')).isEmpty(), "reject old hexadecimal key");
+        require(SyzygyPairing::phraseKey(phrase) == "9099aa9169cd7480309dc3cb217b62371c0486755779f78e", "match independent scrypt vector");
         const QByteArray message = SyzygyPairing::challengeMessage(QByteArray(32, 'n'), "desktop-1", "client-certificate");
         require(QCryptographicHash::hash(message, QCryptographicHash::Sha256).toHex() ==
                 "ad6cba19e5df7f3387606cca01ab009591bf25c9a452ee6f26016bd40ca2ce8a", "match server transcript format");
