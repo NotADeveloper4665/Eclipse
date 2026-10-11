@@ -1,6 +1,6 @@
 Name:           moonlight-eclipse
 Version:        0.5.6
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Moonlight streaming client with the Eclipse control center
 License:        GPL-3.0-only
 URL:            https://github.com/NotADeveloper4665/Eclipse
@@ -27,6 +27,7 @@ BuildRequires:  libdrm-devel
 BuildRequires:  libplacebo-devel
 BuildRequires:  vulkan-loader-devel
 
+Requires:       python3-aioquic >= 1.3.0
 Requires:       qt5-qtdeclarative
 Requires:       qt5-qtquickcontrols2
 Requires:       qt5-qtsvg

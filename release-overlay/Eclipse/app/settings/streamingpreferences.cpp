@@ -289,6 +289,7 @@ void StreamingPreferences::reload()
     gamepadMouse = settings.value(SER_GAMEPADMOUSE, true).toBool();
     detectNetworkBlocking = settings.value(SER_DETECTNETBLOCKING, true).toBool();
     showPerformanceOverlay = settings.value(SER_SHOWPERFOVERLAY, false).toBool();
+    transportMode = qBound(0, settings.value("transportMode", 0).toInt(), 2);
     dynamicAdaptiveBitrate = settings.value(SER_DYNAMIC_ABR, false).toBool();
     adaptiveBitrateMode = static_cast<AdaptiveBitrateMode>(qBound(0, settings.value(SER_ABR_MODE, static_cast<int>(ABR_BALANCED)).toInt(), 2));
     viewOnlyMode = settings.value(SER_VIEW_ONLY, false).toBool();
@@ -500,6 +501,7 @@ void StreamingPreferences::save()
         global->absoluteMouseMode = absoluteMouseMode;
         global->multiController = multiController;
         global->showPerformanceOverlay = showPerformanceOverlay;
+        global->transportMode = transportMode;
         global->dynamicAdaptiveBitrate = dynamicAdaptiveBitrate;
         global->adaptiveBitrateMode = adaptiveBitrateMode;
         global->viewOnlyMode = viewOnlyMode;
@@ -537,6 +539,7 @@ void StreamingPreferences::save()
     settings.setValue(SER_PACKETSIZE, packetSize);
     settings.setValue(SER_DETECTNETBLOCKING, detectNetworkBlocking);
     settings.setValue(SER_SHOWPERFOVERLAY, showPerformanceOverlay);
+    settings.setValue("transportMode", transportMode);
     settings.setValue(SER_DYNAMIC_ABR, dynamicAdaptiveBitrate);
     settings.setValue(SER_ABR_MODE, static_cast<int>(adaptiveBitrateMode));
     settings.setValue(SER_VIEW_ONLY, viewOnlyMode);

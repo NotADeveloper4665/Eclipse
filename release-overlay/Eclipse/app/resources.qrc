@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
+        <file>streaming/quic/syzygy-quic.py</file>
         <file>res/fsr.glsl</file>
         <file>gui/DeviceForwarding.qml</file>
         <file>gui/MediaForwarding.qml</file>

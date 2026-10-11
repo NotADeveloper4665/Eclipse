@@ -25,3 +25,26 @@ Muxing and file writes run on a bounded background queue so disk stalls do not b
 ## Compact performance HUD
 
 The Ctrl+Alt+Shift+S overlay renders three lines in a translucent rounded card with an accent bar: stream resolution, codec, and FPS; ping, decode time, and render time; then host processing time, network loss, and pacer drops attributed to jitter. The verbose statistics text remains available to logs and the control-center stats snapshot. Windows uses Segoe UI when installed; other platforms use the bundled ModeSeven font.
+
+## Experimental authenticated QUIC
+
+Network transport in Settings offers Automatic (prefer QUIC), Force QUIC, and
+GameStream. Force QUIC never falls back; Automatic falls back on an unavailable
+transport but stops on authentication failure. Pair first using the Syzygy
+phrase or verified Tailscale flow. Enable the host listener with `-quic`.
+
+The initial SQ1 transport targets Fedora/Linux IPv4 desktop RPMs. Both machines
+need python3-aioquic >= 1.3.0. The host listens on UDP base port + 31 (48020 by
+default), which must be reachable. Windows, Android and Flatpak dependency
+bundling are not included in this implementation.
+
+The saved host certificate is pinned during QUIC TLS setup. A fresh challenge
+requires a signature from an authorized paired client key; phrases are never
+sent to the relay. Reliable streams carry HTTPS launch, RTSP and control;
+unreliable QUIC datagrams carry the existing encrypted audio/video packets.
+This preserves native codecs and permissions. Temporary client credentials and
+loopback listeners belong to the streaming session and are removed on shutdown.
+Revoked host-side certificates are checked once per second.
+
+This is our own QUIC transport, not Kyber compatibility. It needs real-game
+performance measurements before making any latency or bandwidth claims.

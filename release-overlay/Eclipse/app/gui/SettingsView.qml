@@ -1076,6 +1076,19 @@ Flickable {
                 anchors.fill: parent
                 spacing: 5
 
+                Label { text: qsTr("Network transport (experimental QUIC)") }
+                ComboBox {
+                    width: parent.width
+                    model: [qsTr("Automatic — prefer QUIC"), qsTr("Force QUIC"), qsTr("GameStream")]
+                    currentIndex: StreamingPreferences.transportMode
+                    onActivated: StreamingPreferences.transportMode = currentIndex
+                }
+                Label {
+                    width: parent.width
+                    wrapMode: Text.WordWrap
+                    text: qsTr("Force QUIC requires Syzygy started with -quic and never falls back. QUIC currently supports Linux clients; unavailable hosts use GameStream in Automatic mode.")
+                }
+
                 CheckBox {
                     width: parent.width
                     text: qsTr("Adjust bitrate automatically")

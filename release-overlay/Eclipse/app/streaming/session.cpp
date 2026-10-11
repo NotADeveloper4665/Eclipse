@@ -1695,10 +1695,25 @@ bool Session::startConnectionAsync()
         enableGameOptimizations = m_Preferences->gameOptimizations;
     }
 
+    if (m_Preferences->transportMode != 2) {
+        m_QuicTunnel = std::make_unique<QuicTunnel>();
+        if (!m_QuicTunnel->start(m_Computer)) {
+            const bool authenticationFailure = m_QuicTunnel->failureCode == 4;
+            const QString detail = m_QuicTunnel->error;
+            m_QuicTunnel.reset();
+            if (m_Preferences->transportMode == 1 || authenticationFailure) {
+                emit displayLaunchError(tr("QUIC connection failed: %1").arg(detail));
+                return false;
+            }
+            SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "QUIC unavailable; falling back to GameStream");
+        }
+    }
+
     QString rtspSessionUrl;
 
     try {
-        NvHTTP http(m_Computer);
+        NvHTTP http(m_QuicTunnel ? NvAddress(m_QuicTunnel->local, m_Computer->activeAddress.port()) : m_Computer->activeAddress,
+                    m_Computer->activeHttpsPort, m_Computer->serverCert, !m_Computer->isNvidiaServerSoftware);
         http.startApp(m_Computer->currentGameId != 0 ? "resume" : "launch",
                       m_Computer->isNvidiaServerSoftware,
                       m_App.id, &m_StreamConfig,
@@ -1715,7 +1730,12 @@ bool Session::startConnectionAsync()
         return false;
     }
 
-    QByteArray hostnameStr = m_Computer->activeAddress.address().toUtf8();
+    if (m_QuicTunnel && !rtspSessionUrl.isEmpty()) {
+        QUrl localRtsp(rtspSessionUrl);
+        localRtsp.setHost(m_QuicTunnel->local);
+        rtspSessionUrl = localRtsp.toString();
+    }
+    QByteArray hostnameStr = (m_QuicTunnel ? m_QuicTunnel->local : m_Computer->activeAddress.address()).toUtf8();
     QByteArray siAppVersion = m_Computer->appVersion.toUtf8();
 
     SERVER_INFORMATION hostInfo;
@@ -1791,6 +1811,11 @@ bool Session::startConnectionAsync()
                                                                          false);
     }
 
+    if (m_QuicTunnel) {
+        m_StreamConfig.packetSize = 1024;
+        m_StreamConfig.streamingRemotely = STREAM_CFG_LOCAL;
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "Streaming through authenticated QUIC");
+    }
     int err = LiStartConnection(&hostInfo, &m_StreamConfig, &k_ConnCallbacks,
                                 &m_VideoCallbacks, &m_AudioCallbacks,
                                 NULL, 0, NULL, 0);

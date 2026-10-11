@@ -24,6 +24,7 @@ public:
 
     Q_PROPERTY(QVariantList hostStreamProfiles READ hostStreamProfiles NOTIFY hostStreamProfilesChanged)
     Q_PROPERTY(QString activeHostStreamProfile READ activeHostStreamProfile WRITE setActiveHostStreamProfile NOTIFY activeHostStreamProfileChanged)
+    Q_PROPERTY(int transportMode MEMBER transportMode NOTIFY transportModeChanged)
     Q_PROPERTY(int minimumLatency MEMBER minimumLatency NOTIFY minimumLatencyChanged)
     Q_PROPERTY(bool dynamicAdaptiveBitrate MEMBER dynamicAdaptiveBitrate NOTIFY dynamicAdaptiveBitrateChanged)
     Q_PROPERTY(bool viewOnlyMode MEMBER viewOnlyMode NOTIFY inputPermissionsChanged)
@@ -235,6 +236,7 @@ public:
     UIDisplayMode uiDisplayMode;
     Language language;
     CaptureSysKeysMode captureSysKeysMode;
+    int transportMode = 0; // Automatic, Force QUIC, GameStream
     int minimumLatency;
     bool dynamicAdaptiveBitrate = false;
     AdaptiveBitrateMode adaptiveBitrateMode = ABR_BALANCED;
@@ -285,6 +287,7 @@ signals:
     void languageChanged();
     void hostStreamProfilesChanged();
     void activeHostStreamProfileChanged();
+    void transportModeChanged();
     void minimumLatencyChanged();
     void dynamicAdaptiveBitrateChanged();
     void adaptiveBitrateModeChanged();
