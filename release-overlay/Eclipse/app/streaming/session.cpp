@@ -1911,7 +1911,9 @@ void Session::exec()
         const auto mode = m_Preferences->adaptiveBitrateMode;
         m_AdaptiveBitrateStop.store(false);
         m_AdaptiveBitrateThread = std::thread([this, baseBitrate, mode]() {
-            NvHTTP host(m_Computer);
+            NvHTTP host(m_QuicTunnel ? NvAddress(m_QuicTunnel->local, m_Computer->activeAddress.port()) : m_Computer->activeAddress,
+                        m_Computer->activeHttpsPort, m_Computer->serverCert,
+                        !m_Computer->isNvidiaServerSoftware);
             int currentBitrate = baseBitrate;
             uint32_t baselineRtt = 0;
             int stableIntervals = 0;
