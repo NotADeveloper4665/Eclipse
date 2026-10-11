@@ -1,0 +1,63 @@
+name: Publish validated QUIC release downloads
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-quic-release.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: publish-quic-release
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_SHA: a5f03e966fe959d9913cb025035920f858ade61f
+      RELEASE_TAG: eclipse-0.5.6
+    steps:
+      - name: Verify successful build provenance
+        run: |
+          test "$(gh api repos/$GITHUB_REPOSITORY/actions/runs/38099002797 --jq '.head_sha')" = "$SOURCE_SHA"
+          test "$(gh api repos/$GITHUB_REPOSITORY/actions/runs/38099002797 --jq '.conclusion')" = success
+          test "$(gh api repos/$GITHUB_REPOSITORY/actions/runs/38099002786 --jq '.head_sha')" = "$SOURCE_SHA"
+          test "$(gh api repos/$GITHUB_REPOSITORY/actions/runs/38099002786 --jq '.conclusion')" = success
+      - uses: actions/download-artifact@v4
+        with:
+          name: Eclipse-Fedora-44
+          run-id: 38099002797
+          github-token: ${{ github.token }}
+          path: release-assets
+      - uses: actions/download-artifact@v4
+        with:
+          name: Eclipse-Flatpak-x86_64
+          run-id: 38099002786
+          github-token: ${{ github.token }}
+          path: release-assets
+      - name: Publish downloadable release assets
+        run: |
+          cat > release-notes.md <<'NOTES'
+          Eclipse 0.5.6 adds experimental authenticated QUIC support for the Fedora RPM.
+
+          - Network transport settings: Automatic (prefer QUIC), Force QUIC, and GameStream.
+          - Pinned host certificate and proof using the paired client key.
+          - Video/audio QUIC datagrams; reliable setup and control streams.
+          - Session cleanup and reliable adaptive bitrate updates.
+          - Six-word Syzygy pairing support.
+
+          Fedora 44 x86_64: download the moonlight-eclipse RPM (not debuginfo/debugsource). Its dependency on python3-aioquic is installed by the package manager. Pair first, start Syzygy with -quic, and choose Force QUIC in Streaming settings. Default host QUIC port: UDP 48020.
+
+          QUIC is experimental Linux IPv4 support. Real-game streaming and latency remain unverified. The Flatpak bundle is included for existing GameStream functionality; QUIC dependencies are not bundled in Flatpak.
+
+          Built from a5f03e966fe959d9913cb025035920f858ade61f. Fedora RPM, Flatpak and source checks passed.
+          NOTES
+          mapfile -d '' assets < <(find release-assets -type f \( -name '*.rpm' -o -name '*.zip' -o -name '*.flatpak' \) -print0)
+          test "${#assets[@]}" -gt 0
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber --repo "$GITHUB_REPOSITORY"
+            gh release edit "$RELEASE_TAG" --title 'Eclipse 0.5.6 — authenticated QUIC preview' --notes-file release-notes.md --prerelease --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$RELEASE_TAG" "${assets[@]}" --target "$SOURCE_SHA" --title 'Eclipse 0.5.6 — authenticated QUIC preview' --notes-file release-notes.md --prerelease --repo "$GITHUB_REPOSITORY"
+          fi
