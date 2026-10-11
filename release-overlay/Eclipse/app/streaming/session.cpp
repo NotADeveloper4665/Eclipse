@@ -1374,7 +1374,9 @@ private:
 
         // Perform a best-effort app quit
         if (shouldQuit) {
-            NvHTTP http(m_Session->m_Computer);
+            NvHTTP http(m_Session->m_QuicTunnel ? NvAddress(m_Session->m_QuicTunnel->local, m_Session->m_Computer->activeAddress.port()) : m_Session->m_Computer->activeAddress,
+                        m_Session->m_Computer->activeHttpsPort, m_Session->m_Computer->serverCert,
+                        !m_Session->m_Computer->isNvidiaServerSoftware);
 
             // Logging is already done inside NvHTTP
             try {
@@ -1386,6 +1388,9 @@ private:
             // Session is finished now
             emit m_Session->sessionFinished(m_Session->m_PortTestResults);
         }
+
+        // Release the transport before permitting another session or application exit.
+        m_Session->m_QuicTunnel.reset();
 
         // Exit the entire program if requested
         if (m_Session->m_ShouldExit && !m_Session->m_ReconnectRequested) {
