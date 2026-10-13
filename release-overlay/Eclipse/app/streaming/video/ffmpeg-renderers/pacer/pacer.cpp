@@ -439,11 +439,16 @@ void Pacer::signalVsync()
 void Pacer::renderFrame(AVFrame* frame)
 {
     // Drop completed decoded frames, never compressed reference frames.
-    if (m_Wan && LiGetMicroseconds() - static_cast<uint64_t>(frame->pkt_dts) > 16000) {
-        m_VideoStats->pacerDroppedFrames++;
-        av_frame_free(&frame);
-        return;
-    }
+    if (m_Wan && m_DiscardStale && LiGetMicroseconds() - static_cast<uint64_t>(frame->pkt_dts) > 16000) {
+        if (++m_StaleConsecutive < 4) {
+            m_VideoStats->pacerDroppedFrames++;
+            av_frame_free(&frame);
+            return;
+        }
+        // A slow/blocked presenter must not leave the user with a black stream.
+        m_DiscardStale = false;
+        SDL_LogWarn(SDL_LOG_CATEGORY_APPLICATION, "WAN stale-frame discard unavailable on this presenter; keeping latest-frame rendering");
+    } else m_StaleConsecutive = 0;
     // Count time spent in Pacer's queues
     uint64_t beforeRender = LiGetMicroseconds();
     m_VideoStats->totalPacerTimeUs += (beforeRender - (uint64_t)frame->pkt_dts);

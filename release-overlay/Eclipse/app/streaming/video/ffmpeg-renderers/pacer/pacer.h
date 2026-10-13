@@ -77,6 +77,8 @@ private:
     AVFrame* m_DeferredFreeFrame;
     bool m_Stopping;
     bool m_Wan = false;
+    bool m_DiscardStale = true;
+    int m_StaleConsecutive = 0;
 
     IVsyncSource* m_VsyncSource;
     IFFmpegRenderer* m_VsyncRenderer;

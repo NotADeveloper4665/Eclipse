@@ -303,8 +303,8 @@ bool Session::chooseDecoder(StreamingPreferences::VideoDecoderSelection vds,
     params.frameRate = frameRate;
     params.videoFormat = videoFormat;
     params.window = window;
-    params.enableVsync = enableVsync;
-    params.enableMailboxPresentMode = !testOnly && s_ActiveSession &&
+    params.enableVsync = enableVsync && !(s_ActiveSession && s_ActiveSession->m_WanActive);
+    params.enableMailboxPresentMode = !testOnly && s_ActiveSession && !s_ActiveSession->m_WanActive &&
             s_ActiveSession->m_Preferences->enableVsync &&
             s_ActiveSession->m_Preferences->enableMailboxPresentMode;
     params.enableFramePacing = enableFramePacing && !(s_ActiveSession && s_ActiveSession->m_WanActive);
@@ -316,7 +316,7 @@ bool Session::chooseDecoder(StreamingPreferences::VideoDecoderSelection vds,
 
     SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
                 "V-sync %s",
-                enableVsync ? "enabled" : "disabled");
+                params.enableVsync ? "enabled" : "disabled");
 
 #ifdef HAVE_SLVIDEO
     chosenDecoder = new SLVideoDecoder(testOnly);
