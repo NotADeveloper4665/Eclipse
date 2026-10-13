@@ -14,7 +14,9 @@ Start Syzygy on Linux and copy the six-word pairing phrase shown in the terminal
 
 ## Releases
 
-The 0.5.4 source and package builds are running from GitHub Actions. The latest published package remains [Eclipse 0.5.3](https://github.com/NotADeveloper4665/Eclipse/releases/tag/eclipse-0.5.3).
+Download current development builds from the [Eclipse development release](https://github.com/NotADeveloper4665/Eclipse/releases/tag/dev): Fedora 44 x86_64 RPM, x86_64 Flatpak, and complete source. The release updates only after RPM, Flatpak, and source checks pass for the same main-branch commit. `SHA256SUMS` and `dev-build.json` record file integrity and build provenance.
+
+The versioned [Eclipse 0.5.6 preview](https://github.com/NotADeveloper4665/Eclipse/releases/tag/eclipse-0.5.6) remains available separately.
 
 ## Source and checks
 
