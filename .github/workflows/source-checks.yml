@@ -11,6 +11,10 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      - name: WAN telemetry outage and recovery checks
+        run: |
+          g++ -std=c++17 -Wall -Wextra -Werror release-overlay/Eclipse/tests/wanfeedback_smoke.cpp -o wanfeedback-smoke
+          ./wanfeedback-smoke
       - name: Install development and test dependencies
         run: |
           sudo apt-get update
