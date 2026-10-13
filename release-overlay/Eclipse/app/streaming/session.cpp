@@ -1,4 +1,5 @@
 #include "quic/wanenvironment.h"
+#include "quic/wanfeedbackretry.h"
 #include "session.h"
 #include "backend/nvhttp.h"
 #include "controlcenter.h"
@@ -1939,6 +1940,8 @@ void Session::exec()
             int stableIntervals = 0;
             int congestionIntervals = 0;
             bool endpointAvailable = true;
+            WanFeedbackRetry wanFeedbackRetry;
+            bool wanFeedbackFailed = false;
             const int minimumPercent = mode == StreamingPreferences::ABR_QUALITY ? 60 :
                                        mode == StreamingPreferences::ABR_LOW_LATENCY ? 25 : 40;
             const uint32_t rttMarginMs = mode == StreamingPreferences::ABR_QUALITY ? 50 :
@@ -1952,16 +1955,22 @@ void Session::exec()
                 uint32_t variance = 0;
                 if (!LiGetEstimatedRttInfo(&rtt, &variance) || rtt == 0) continue;
                 if (m_WanActive) {
+                    if (!wanFeedbackRetry.ready()) continue;
                     auto frames = m_WanFrames.exchange(0);
                     auto missing = m_WanMissing.exchange(0);
                     // Frame gaps are post-FEC loss, not raw packet loss.
                     int loss = frames+missing ? static_cast<int>(1000ULL*missing/(frames+missing)) : 0;
-                    if (endpointAvailable) {
-                        try { host.sendWanFeedback(rtt, variance, loss); }
-                        catch (const std::exception& e) {
-                            qWarning() << "WAN feedback unavailable; host keeps conservative fallback:" << e.what();
-                            endpointAvailable = false;
-                        }
+                    try {
+                        host.sendWanFeedback(rtt, variance, loss);
+                        if (wanFeedbackFailed) qInfo() << "WAN feedback recovered";
+                        wanFeedbackFailed = false;
+                        wanFeedbackRetry.succeeded();
+                    }
+                    catch (const std::exception& e) {
+                        if (!wanFeedbackFailed)
+                            qWarning() << "WAN feedback unavailable; retrying with conservative host fallback:" << e.what();
+                        wanFeedbackFailed = true;
+                        wanFeedbackRetry.failed();
                     }
                     continue;
                 }
