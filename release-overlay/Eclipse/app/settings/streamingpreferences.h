@@ -24,6 +24,8 @@ public:
 
     Q_PROPERTY(QVariantList hostStreamProfiles READ hostStreamProfiles NOTIFY hostStreamProfilesChanged)
     Q_PROPERTY(QString activeHostStreamProfile READ activeHostStreamProfile WRITE setActiveHostStreamProfile NOTIFY activeHostStreamProfileChanged)
+    Q_PROPERTY(bool wanWifiPower MEMBER wanWifiPower NOTIFY wanWifiPowerChanged)
+    Q_PROPERTY(bool wanOptimization MEMBER wanOptimization NOTIFY wanOptimizationChanged)
     Q_PROPERTY(int transportMode MEMBER transportMode NOTIFY transportModeChanged)
     Q_PROPERTY(int minimumLatency MEMBER minimumLatency NOTIFY minimumLatencyChanged)
     Q_PROPERTY(bool dynamicAdaptiveBitrate MEMBER dynamicAdaptiveBitrate NOTIFY dynamicAdaptiveBitrateChanged)
@@ -236,6 +238,8 @@ public:
     UIDisplayMode uiDisplayMode;
     Language language;
     CaptureSysKeysMode captureSysKeysMode;
+    bool wanOptimization = false;
+    bool wanWifiPower = false;
     int transportMode = 0; // Automatic, Force QUIC, GameStream
     int minimumLatency;
     bool dynamicAdaptiveBitrate = false;
@@ -288,6 +292,8 @@ signals:
     void hostStreamProfilesChanged();
     void activeHostStreamProfileChanged();
     void transportModeChanged();
+    void wanOptimizationChanged();
+    void wanWifiPowerChanged();
     void minimumLatencyChanged();
     void dynamicAdaptiveBitrateChanged();
     void adaptiveBitrateModeChanged();

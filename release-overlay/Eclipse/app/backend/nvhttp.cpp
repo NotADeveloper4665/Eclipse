@@ -206,7 +206,7 @@ NvHTTP::startApp(QString verb,
                  bool localAudio,
                  int gamepadMask,
                  bool persistGameControllersOnDisconnect,
-                 QString& rtspSessionUrl)
+                 QString& rtspSessionUrl, bool wan)
 {
     int riKeyId;
 
@@ -235,7 +235,7 @@ NvHTTP::startApp(QString verb,
                                    "&remoteControllersBitmap="+QString::number(gamepadMask)+
                                    "&gcmap="+QString::number(gamepadMask)+
                                    "&gcpersist="+QString::number(persistGameControllersOnDisconnect ? 1 : 0)+
-                                   LiGetLaunchUrlQueryParameters(),
+                                   QString(wan ? "&wan=1" : "") + LiGetLaunchUrlQueryParameters(),
                                    LAUNCH_TIMEOUT_MS);
 
     qInfo() << "Launch response:" << response;
@@ -267,6 +267,13 @@ NvHTTP::quitApp()
         // that they can't kill someone else's stream.
         throw GfeHttpResponseException(599, "");
     }
+}
+
+void NvHTTP::sendWanFeedback(int rtt, int jitter, int loss)
+{
+    verifyResponseStatus(openConnectionToString(m_BaseUrlHttps, "wan",
+        QString("rtt=%1&jitter=%2&loss=%3").arg(rtt).arg(jitter).arg(loss),
+        FAST_FAIL_TIMEOUT_MS, NvLogLevel::NVLL_ERROR));
 }
 
 void NvHTTP::setBitrate(int bitrateKbps)

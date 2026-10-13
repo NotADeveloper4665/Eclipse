@@ -1,0 +1,179 @@
+#include "sdl.h"
+#include "../../session.h"
+
+#include <Limelight.h>
+
+SdlAudioRenderer::SdlAudioRenderer()
+    : m_AudioDevice(0),
+      m_AudioBuffer(nullptr)
+{
+    SDL_assert(!SDL_WasInit(SDL_INIT_AUDIO));
+
+    if (SDL_InitSubSystem(SDL_INIT_AUDIO) != 0) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+                     "SDL_InitSubSystem(SDL_INIT_AUDIO) failed: %s",
+                     SDL_GetError());
+        SDL_assert(SDL_WasInit(SDL_INIT_AUDIO));
+    }
+}
+
+bool SdlAudioRenderer::prepareForPlayback(const OPUS_MULTISTREAM_CONFIGURATION* opusConfig)
+{
+    m_Wan = Session::get() && Session::get()->wanOptimizationActive();
+#ifdef HAVE_SOUNDTOUCH
+    if (m_Wan) {
+        try {
+            m_Channels = opusConfig->channelCount;
+            m_Tempo = std::make_unique<soundtouch::SoundTouch>();
+            m_Tempo->setSampleRate(opusConfig->sampleRate);
+            m_Tempo->setChannels(m_Channels);
+            m_Tempo->setSetting(SETTING_SEQUENCE_MS, 20);
+            m_Tempo->setSetting(SETTING_SEEKWINDOW_MS, 5);
+            m_Tempo->setSetting(SETTING_OVERLAP_MS, 5);
+            m_TempoBuffer.resize(opusConfig->samplesPerFrame * m_Channels * 4);
+        } catch (...) {
+            m_Tempo.reset();
+            SDL_LogWarn(SDL_LOG_CATEGORY_AUDIO, "WAN time stretch unavailable; bounded audio fallback");
+        }
+    }
+#endif
+    SDL_AudioSpec want, have;
+
+    SDL_zero(want);
+    want.freq = opusConfig->sampleRate;
+    want.format = AUDIO_F32SYS;
+    want.channels = opusConfig->channelCount;
+
+    // On PulseAudio systems, setting a value too small can cause underruns for other
+    // applications sharing this output device. We impose a floor of 480 samples (10 ms)
+    // to mitigate this issue. Otherwise, we will buffer up to 3 frames of audio which
+    // is 15 ms at regular 5 ms frames and 30 ms at 10 ms frames for slow connections.
+    // The buffering helps avoid audio underruns due to network jitter.
+    want.samples = SDL_max(480, opusConfig->samplesPerFrame * (m_Wan ? 2 : 3));
+
+    m_FrameDurationMs = opusConfig->samplesPerFrame / (opusConfig->sampleRate / 1000);
+    m_FrameSize = opusConfig->samplesPerFrame *
+                  opusConfig->channelCount *
+                  getAudioBufferSampleSize();
+
+    m_AudioDevice = SDL_OpenAudioDevice(NULL, 0, &want, &have, 0);
+    if (m_AudioDevice == 0) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+                     "Failed to open audio device: %s",
+                     SDL_GetError());
+        return false;
+    }
+
+    m_AudioBuffer = SDL_malloc(m_FrameSize);
+    if (m_AudioBuffer == nullptr) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+                     "Failed to allocate audio buffer");
+        return false;
+    }
+
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
+                "Desired audio buffer: %u samples (%u bytes)",
+                want.samples,
+                want.samples * want.channels * getAudioBufferSampleSize());
+
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
+                "Obtained audio buffer: %u samples (%u bytes)",
+                have.samples,
+                have.size);
+
+    SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
+                "SDL audio driver: %s",
+                SDL_GetCurrentAudioDriver());
+
+    // Start playback
+    SDL_PauseAudioDevice(m_AudioDevice, 0);
+
+    return true;
+}
+
+SdlAudioRenderer::~SdlAudioRenderer()
+{
+    if (m_AudioDevice != 0) {
+        // Stop playback
+        SDL_PauseAudioDevice(m_AudioDevice, 1);
+        SDL_CloseAudioDevice(m_AudioDevice);
+    }
+
+    if (m_AudioBuffer != nullptr) {
+        SDL_free(m_AudioBuffer);
+    }
+
+    SDL_QuitSubSystem(SDL_INIT_AUDIO);
+    SDL_assert(!SDL_WasInit(SDL_INIT_AUDIO));
+}
+
+void* SdlAudioRenderer::getAudioBuffer(int*)
+{
+    return m_AudioBuffer;
+}
+
+bool SdlAudioRenderer::submitAudio(int bytesWritten)
+{
+    if (bytesWritten == 0) {
+        // Nothing to do
+        return true;
+    }
+
+    // Don't queue if there's already more than 30 ms of audio data waiting
+    // in Moonlight's audio queue.
+    if (LiGetPendingAudioDuration() > 30) {
+        return true;
+    }
+
+    // Provide backpressure on the queue to ensure too many frames don't build up
+    // in SDL's audio queue, but don't wait forever to avoid a deadlock if the
+    // audio device fails.
+    for (int i = 0; i < 100; i++) {
+        // Our device may enter a permanent error status upon removal, so we need
+        // to recreate the audio device to pick up the new default audio device.
+        if (SDL_GetAudioDeviceStatus(m_AudioDevice) == SDL_AUDIO_STOPPED) {
+            return false;
+        }
+
+        // Only queue more samples where there is 50 ms or less in SDL's queue
+        if (SDL_GetQueuedAudioSize(m_AudioDevice) / m_FrameSize * m_FrameDurationMs <= (m_Wan ? 30 : 50)) {
+            break;
+        }
+
+        SDL_Delay(1);
+    }
+
+#ifdef HAVE_SOUNDTOUCH
+    const int originalBytes = bytesWritten;
+#endif
+    const void *output = m_AudioBuffer;
+#ifdef HAVE_SOUNDTOUCH
+    if (m_Tempo) {
+        try {
+            const auto queuedMs = SDL_GetQueuedAudioSize(m_AudioDevice) / m_FrameSize * m_FrameDurationMs;
+            m_Tempo->setTempo(queuedMs > 20 ? 1.01 : 1.0);
+            m_Tempo->putSamples(static_cast<const float*>(m_AudioBuffer), bytesWritten / sizeof(float) / m_Channels);
+            auto samples = m_Tempo->receiveSamples(m_TempoBuffer.data(), m_TempoBuffer.size()/m_Channels);
+            bytesWritten = samples * m_Channels * sizeof(float);
+            output = m_TempoBuffer.data();
+        } catch (...) {
+            m_Tempo.reset();
+            output = m_AudioBuffer;
+            bytesWritten = originalBytes;
+            SDL_LogWarn(SDL_LOG_CATEGORY_AUDIO, "WAN audio DSP failed; normal audio fallback");
+        }
+    }
+#endif
+    if (SDL_QueueAudio(m_AudioDevice, output, bytesWritten) < 0) {
+        SDL_LogError(SDL_LOG_CATEGORY_APPLICATION,
+                     "Failed to queue audio sample: %s",
+                     SDL_GetError());
+    }
+
+    return true;
+}
+
+IAudioRenderer::AudioFormat SdlAudioRenderer::getAudioBufferFormat()
+{
+    return AudioFormat::Float32NE;
+}

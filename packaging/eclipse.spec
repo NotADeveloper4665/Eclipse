@@ -1,6 +1,6 @@
 Name:           moonlight-eclipse
-Version:        0.5.6
-Release:        2%{?dist}
+Version:        0.5.7
+Release:        1%{?dist}
 Summary:        Moonlight streaming client with the Eclipse control center
 License:        GPL-3.0-only
 URL:            https://github.com/NotADeveloper4665/Eclipse
@@ -37,6 +37,8 @@ Recommends:     usbip
 Recommends:     polkit
 Recommends:     ffmpeg
 Recommends:     pulseaudio-utils
+
+BuildRequires: soundtouch-devel
 
 %description
 Eclipse is a Moonlight desktop streaming client with an in-session control

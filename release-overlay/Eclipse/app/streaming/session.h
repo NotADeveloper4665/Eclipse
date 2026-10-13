@@ -9,6 +9,7 @@
 #include <opus_multistream.h>
 #include "settings/streamingpreferences.h"
 #include "quic/quictunnel.h"
+#include "quic/wanenvironment.h"
 #include "input/input.h"
 #include "video/decoder.h"
 #include "audio/renderers/renderer.h"
@@ -131,6 +132,7 @@ public:
         return m_OverlayManager;
     }
 
+    bool wanOptimizationActive() const { return m_WanActive; }
     void flushWindowEvents();
 
     void recordVideoDecodeUnit(PDECODE_UNIT decodeUnit);
@@ -270,6 +272,10 @@ private:
     bool m_IsFullScreen;
     SupportedVideoFormatList m_SupportedVideoFormats; // Sorted in order of descending priority
     std::unique_ptr<QuicTunnel> m_QuicTunnel;
+    std::unique_ptr<WanEnvironment> m_WanEnvironment;
+    bool m_WanActive = false;
+    std::atomic<unsigned int> m_WanFrames{0}, m_WanMissing{0};
+    unsigned int m_WanLastFrame = 0;
     STREAM_CONFIGURATION m_StreamConfig;
     DECODER_RENDERER_CALLBACKS m_VideoCallbacks;
     AUDIO_RENDERER_CALLBACKS m_AudioCallbacks;

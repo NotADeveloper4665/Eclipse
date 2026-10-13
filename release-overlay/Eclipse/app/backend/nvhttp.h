@@ -163,6 +163,7 @@ public:
 
     // Update Sunshine's active stream bitrate (kbps).
     void setBitrate(int bitrateKbps);
+    void sendWanFeedback(int rtt, int jitter, int loss);
 
     void
     startApp(QString verb,
@@ -173,7 +174,7 @@ public:
              bool localAudio,
              int gamepadMask,
              bool persistGameControllersOnDisconnect,
-             QString& rtspSessionUrl);
+             QString& rtspSessionUrl, bool wan = false);
 
     QVector<NvApp>
     getAppList();

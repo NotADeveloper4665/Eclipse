@@ -1076,6 +1076,24 @@ Flickable {
                 anchors.fill: parent
                 spacing: 5
 
+                CheckBox {
+                    text: qsTr("WAN / 5G Optimization")
+                    checked: StreamingPreferences.wanOptimization
+                    onToggled: StreamingPreferences.wanOptimization = checked
+                }
+                Label {
+                    width: parent.width
+                    wrapMode: Text.WordWrap
+                    text: qsTr("Use paced, smaller packets and responsive video on compatible Syzygy hosts. Unsupported features retain normal streaming behavior. Applies to the next stream.")
+                }
+                CheckBox {
+                    text: qsTr("Temporarily disable Wi-Fi power saving (Linux)")
+                    enabled: StreamingPreferences.wanOptimization
+                    checked: StreamingPreferences.wanWifiPower
+                    onToggled: StreamingPreferences.wanWifiPower = checked
+                    ToolTip.text: qsTr("Optional administrator authorization. Restores the previous setting when the stream ends; unavailable interfaces keep normal settings.")
+                    ToolTip.visible: hovered
+                }
                 Label { text: qsTr("Network transport (experimental QUIC)") }
                 ComboBox {
                     width: parent.width

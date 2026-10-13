@@ -76,6 +76,7 @@ private:
     SDL_Thread* m_LatencyThread;
     AVFrame* m_DeferredFreeFrame;
     bool m_Stopping;
+    bool m_Wan = false;
 
     IVsyncSource* m_VsyncSource;
     IFFmpegRenderer* m_VsyncRenderer;

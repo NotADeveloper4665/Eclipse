@@ -1,3 +1,4 @@
+#include "quic/wanenvironment.h"
 #include "session.h"
 #include "backend/nvhttp.h"
 #include "controlcenter.h"
@@ -306,9 +307,9 @@ bool Session::chooseDecoder(StreamingPreferences::VideoDecoderSelection vds,
     params.enableMailboxPresentMode = !testOnly && s_ActiveSession &&
             s_ActiveSession->m_Preferences->enableVsync &&
             s_ActiveSession->m_Preferences->enableMailboxPresentMode;
-    params.enableFramePacing = enableFramePacing;
+    params.enableFramePacing = enableFramePacing && !(s_ActiveSession && s_ActiveSession->m_WanActive);
     params.testOnly = testOnly;
-    params.minimumLatency = testOnly ? 0 : minimumLatency;
+    params.minimumLatency = testOnly || (s_ActiveSession && s_ActiveSession->m_WanActive) ? 0 : minimumLatency;
     params.vds = vds;
     params.renderer = renderer;
     params.fsrMode = s_ActiveSession ? s_ActiveSession->m_Preferences->fsrMode : 0;
@@ -415,6 +416,13 @@ void Session::toggleRecording()
 
 int Session::drSubmitDecodeUnit(PDECODE_UNIT du)
 {
+    if (s_ActiveSession->m_WanActive) {
+        auto previous = s_ActiveSession->m_WanLastFrame;
+        auto delta = static_cast<unsigned int>(du->frameNumber) - previous;
+        if (previous && delta > 1 && delta < 10000) s_ActiveSession->m_WanMissing.fetch_add(delta-1);
+        s_ActiveSession->m_WanLastFrame = du->frameNumber;
+        s_ActiveSession->m_WanFrames.fetch_add(1);
+    }
     s_ActiveSession->recordVideoDecodeUnit(du);
 
     // Use a lock since we'll be yanking this decoder out
@@ -1391,6 +1399,7 @@ private:
 
         // Release the transport before permitting another session or application exit.
         m_Session->m_QuicTunnel.reset();
+        m_Session->m_WanEnvironment.reset();
 
         // Exit the entire program if requested
         if (m_Session->m_ShouldExit && !m_Session->m_ReconnectRequested) {
@@ -1719,6 +1728,16 @@ bool Session::startConnectionAsync()
     try {
         NvHTTP http(m_QuicTunnel ? NvAddress(m_QuicTunnel->local, m_Computer->activeAddress.port()) : m_Computer->activeAddress,
                     m_Computer->activeHttpsPort, m_Computer->serverCert, !m_Computer->isNvidiaServerSoftware);
+        if (m_Preferences->wanOptimization) {
+            auto info = http.getServerInfo(NvHTTP::NVLL_ERROR);
+            m_WanActive = NvHTTP::getXmlString(info, "SyzygyWanVersion") == "1";
+            if (m_WanActive) {
+                m_WanEnvironment = std::make_unique<WanEnvironment>(m_Computer->activeAddress.address(), m_Preferences->wanWifiPower);
+                m_StreamConfig.supportedVideoFormats &= VIDEO_FORMAT_H264 | VIDEO_FORMAT_AV1_MAIN8;
+                if (!m_StreamConfig.supportedVideoFormats) m_StreamConfig.supportedVideoFormats = VIDEO_FORMAT_H264;
+                qInfo() << "WAN optimization negotiated; encoder support checked by host";
+            } else qWarning() << "Host lacks WAN optimization; keeping normal streaming settings";
+        }
         http.startApp(m_Computer->currentGameId != 0 ? "resume" : "launch",
                       m_Computer->isNvidiaServerSoftware,
                       m_App.id, &m_StreamConfig,
@@ -1726,7 +1745,7 @@ bool Session::startConnectionAsync()
                       m_Preferences->playAudioOnHost,
                       m_InputHandler->getAttachedGamepadMask(),
                       !m_Preferences->multiController,
-                      rtspSessionUrl);
+                      rtspSessionUrl, m_WanActive);
     } catch (const GfeHttpResponseException& e) {
         emit displayLaunchError(tr("Host returned error: %1").arg(e.toQString()));
         return false;
@@ -1816,6 +1835,7 @@ bool Session::startConnectionAsync()
                                                                          false);
     }
 
+    if (m_WanActive) m_StreamConfig.packetSize = 1024;
     if (m_QuicTunnel) {
         m_StreamConfig.packetSize = 1024;
         m_StreamConfig.streamingRemotely = STREAM_CFG_LOCAL;
@@ -1906,7 +1926,7 @@ void Session::exec()
         return;
     }
 
-    if (m_Preferences->dynamicAdaptiveBitrate && m_StreamConfig.bitrate >= 1000) {
+    if ((m_WanActive || m_Preferences->dynamicAdaptiveBitrate) && m_StreamConfig.bitrate >= 1000) {
         const int baseBitrate = m_StreamConfig.bitrate;
         const auto mode = m_Preferences->adaptiveBitrateMode;
         m_AdaptiveBitrateStop.store(false);
@@ -1931,6 +1951,20 @@ void Session::exec()
                 uint32_t rtt = 0;
                 uint32_t variance = 0;
                 if (!LiGetEstimatedRttInfo(&rtt, &variance) || rtt == 0) continue;
+                if (m_WanActive) {
+                    auto frames = m_WanFrames.exchange(0);
+                    auto missing = m_WanMissing.exchange(0);
+                    // Frame gaps are post-FEC loss, not raw packet loss.
+                    int loss = frames+missing ? static_cast<int>(1000ULL*missing/(frames+missing)) : 0;
+                    if (endpointAvailable) {
+                        try { host.sendWanFeedback(rtt, variance, loss); }
+                        catch (const std::exception& e) {
+                            qWarning() << "WAN feedback unavailable; host keeps conservative fallback:" << e.what();
+                            endpointAvailable = false;
+                        }
+                    }
+                    continue;
+                }
                 if (baselineRtt == 0) baselineRtt = rtt;
 
                 const bool congested = rtt > baselineRtt + rttMarginMs || variance > rttMarginMs;

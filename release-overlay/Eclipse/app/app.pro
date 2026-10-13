@@ -604,3 +604,11 @@ SOURCES += backend/mediapassthrough.cpp
 
 # Build-only integration mode; excluded from shipping binaries.
 eclipse-ui-test: DEFINES += ECLIPSE_UI_TEST
+
+unix:!macx:packagesExist(soundtouch) {
+    CONFIG += link_pkgconfig
+    PKGCONFIG += soundtouch
+    DEFINES += HAVE_SOUNDTOUCH
+}
+
+HEADERS += streaming/quic/wanenvironment.h

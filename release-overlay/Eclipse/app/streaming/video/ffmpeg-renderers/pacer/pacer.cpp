@@ -1,3 +1,4 @@
+#include "../../../session.h"
 #include "pacer.h"
 #include "streaming/streamutils.h"
 
@@ -353,6 +354,7 @@ void Pacer::handleVsync(int timeUntilNextVsyncMillis)
 
 bool Pacer::initialize(SDL_Window* window, int maxVideoFps, bool enablePacing, int minimumLatency)
 {
+    m_Wan = Session::get() && Session::get()->wanOptimizationActive();
     m_MaxVideoFps = maxVideoFps;
     m_DisplayFps = StreamUtils::getDisplayRefreshRate(window);
     m_RendererAttributes = m_VsyncRenderer->getRendererAttributes();
@@ -436,6 +438,12 @@ void Pacer::signalVsync()
 
 void Pacer::renderFrame(AVFrame* frame)
 {
+    // Drop completed decoded frames, never compressed reference frames.
+    if (m_Wan && LiGetMicroseconds() - static_cast<uint64_t>(frame->pkt_dts) > 16000) {
+        m_VideoStats->pacerDroppedFrames++;
+        av_frame_free(&frame);
+        return;
+    }
     // Count time spent in Pacer's queues
     uint64_t beforeRender = LiGetMicroseconds();
     m_VideoStats->totalPacerTimeUs += (beforeRender - (uint64_t)frame->pkt_dts);
@@ -483,6 +491,7 @@ void Pacer::renderFrame(AVFrame* frame)
     }
 
     // Catch up if we're several frames ahead
+    if (m_Wan) frameDropTarget = 0;
     while (m_RenderQueue.count() > frameDropTarget) {
         AVFrame* frame = m_RenderQueue.dequeue();
 
