@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      - name: Development release provenance and package checks
+        run: python3 -m unittest discover -s tests -p 'test_dev_release.py'
       - name: WAN telemetry outage and recovery checks
         run: |
           g++ -std=c++17 -Wall -Wextra -Werror release-overlay/Eclipse/tests/wanfeedback_smoke.cpp -o wanfeedback-smoke
