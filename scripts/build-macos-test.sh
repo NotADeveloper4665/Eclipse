@@ -24,6 +24,18 @@ app="$PWD/app/Eclipse.app"
 test -x "$app/Contents/MacOS/Eclipse"
 lipo -verify_arch arm64 "$app/Contents/MacOS/Eclipse"
 QT_QPA_PLATFORM=offscreen "$app/Contents/MacOS/Eclipse" --version
+# Exercise Eclipse's actual muxer against the native FFmpeg used by the app.
+mkdir -p "$repo_root/macos-work/recording-test"
+pushd "$repo_root/macos-work/recording-test"
+qmake6 "$source_root/tests/recording.pro" QMAKE_APPLE_DEVICE_ARCHS=arm64 QMAKE_MACOSX_DEPLOYMENT_TARGET=15.0
+make -j3
+ffmpeg -hide_banner -loglevel error -f lavfi -i testsrc2=size=320x240:rate=30 -t 2 \
+  -c:v libx264 -preset ultrafast -tune zerolatency -x264-params keyint=30 -f h264 video.h264
+ffmpeg -hide_banner -loglevel error -f lavfi -i sine=frequency=440:sample_rate=48000 -t 2 \
+  -c:a libopus -b:a 96k -f ogg audio.ogg
+./recording-smoke video.h264 audio.ogg recording-h264.mkv h264
+ffmpeg -hide_banner -loglevel error -i recording-h264.mkv -f null -
+popd
 macdeployqt "$app" -qmldir="$source_root/app/gui" -always-overwrite
 python3 "$repo_root/scripts/verify-macos-bundle.py" "$app"
 codesign --force --deep --sign - "$app"

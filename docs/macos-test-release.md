@@ -21,7 +21,7 @@ Start with H.264 or HEVC, hardware decoding and the automatic/native Metal rende
 
 ## Verified versus pending
 
-CI checks native arm64 compilation, version startup, bundle identity, bundled Mach-O architectures and runtime dependency paths, ad-hoc signature verification, DMG creation, checksums and source provenance. This is **not** proof of a successful live M1 streaming session.
+CI checks native arm64 compilation, version startup, native H.264/Opus recording and playback, bundle identity, bundled Mach-O architectures and runtime dependency paths, ad-hoc signature verification, DMG creation, checksums and source provenance. This is **not** proof of a successful live M1 streaming session.
 
 Still needs real-device testing: pairing with Syzygy, sustained H.264/HEVC streaming, HDR display behavior, controller/mouse capture, Bluetooth audio, sleep/wake, recording playback and cellular/WAN behavior. Microphone/camera/USB forwarding depend on platform and host support and are not promised as Mac-compatible in this test.
 
