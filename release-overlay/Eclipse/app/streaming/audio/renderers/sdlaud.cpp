@@ -49,7 +49,13 @@ bool SdlAudioRenderer::prepareForPlayback(const OPUS_MULTISTREAM_CONFIGURATION* 
     // to mitigate this issue. Otherwise, we will buffer up to 3 frames of audio which
     // is 15 ms at regular 5 ms frames and 30 ms at 10 ms frames for slow connections.
     // The buffering helps avoid audio underruns due to network jitter.
+#ifdef Q_OS_DARWIN
+    // Selected from Artemis afe2de7: changing the CoreAudio callback buffer
+    // can break Bluetooth HFP devices. Keep WAN queue limits below unchanged.
+    want.samples = SDL_max(480, opusConfig->samplesPerFrame);
+#else
     want.samples = SDL_max(480, opusConfig->samplesPerFrame * (m_Wan ? 2 : 3));
+#endif
 
     m_FrameDurationMs = opusConfig->samplesPerFrame / (opusConfig->sampleRate / 1000);
     m_FrameSize = opusConfig->samplesPerFrame *

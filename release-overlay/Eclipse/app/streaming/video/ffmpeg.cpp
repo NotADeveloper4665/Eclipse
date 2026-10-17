@@ -1096,9 +1096,9 @@ IFFmpegRenderer* FFmpegVideoDecoder::createHwAccelRenderer(const AVCodecHWConfig
 #endif
 #ifdef Q_OS_DARWIN
         case AV_HWDEVICE_TYPE_VIDEOTOOLBOX:
-            // Prefer the libplacebo (on MoltenVK) renderer unless explicitly opted out
+            // Artemis macOS preference: use native Metal by default; Vulkan is explicit.
 #ifdef HAVE_LIBPLACEBO_VULKAN
-            if (params->renderer == StreamingPreferences::RS_AUTO || params->renderer == StreamingPreferences::RS_VULKAN) {
+            if (params->renderer == StreamingPreferences::RS_VULKAN) {
                 return new PlVkRenderer(hwDecodeCfg->device_type);
             }
 #endif

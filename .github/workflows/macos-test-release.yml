@@ -1,0 +1,74 @@
+name: Eclipse macOS arm64 test
+on:
+  pull_request:
+    paths: ['release-overlay/**', 'scripts/*macos*', '.github/workflows/macos-test-release.yml']
+  push:
+    branches: [main]
+    paths: ['release-overlay/**', 'scripts/*macos*', '.github/workflows/macos-test-release.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: eclipse-macos-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  macos:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Confirm native Apple Silicon runner
+        run: test "$(uname -m)" = arm64
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          host: mac
+          target: desktop
+          arch: clang_64
+          cache: true
+      - name: Install native streaming dependencies
+        run: brew install pkg-config ffmpeg sdl2 sdl2_ttf opus openssl@3
+      - name: Build and verify native app and DMG
+        run: bash scripts/build-macos-test.sh
+      - name: Record build provenance and checksums
+        env:
+          ARTEMIS_COMMIT: afe2de7f2b24a2f6161f5672e8aa38450fa793ef
+        run: |
+          python3 - <<'PYTHON'
+          import json, os, pathlib, subprocess
+          root = pathlib.Path('macos-work/deliverables')
+          (root/'build-info.json').write_text(json.dumps({
+            'version': '0.5.8-macos-test.1', 'eclipse_commit': os.environ['GITHUB_SHA'],
+            'artemis_reference': os.environ['ARTEMIS_COMMIT'], 'architecture': 'arm64',
+            'minimum_macos': '15.0', 'signing': 'ad-hoc; not notarized',
+            'dependencies': subprocess.check_output(['brew','list','--versions'], text=True),
+            'hardware_streaming_tested': False}, indent=2)+'\n')
+          PYTHON
+          cp docs/macos-test-release.md macos-work/deliverables/README-macOS-test.md
+          cd macos-work/deliverables
+          shasum -a 256 *.dmg *.zip *.json *.md > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Eclipse-macOS-arm64-test
+          path: macos-work/deliverables/*
+          if-no-files-found: error
+  publish:
+    needs: macos
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: Eclipse-macOS-arm64-test
+          path: macos-release
+      - name: Publish separate macOS prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="macos-test-0.5.8-1-${GITHUB_SHA:0:7}"
+          gh release create "$tag" macos-release/* --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" --title 'Eclipse 0.5.8 macOS Apple Silicon Test 1' \
+            --notes-file docs/macos-test-release.md --prerelease --latest=false

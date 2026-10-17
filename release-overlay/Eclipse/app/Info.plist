@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDisplayName</key>
+	<string>Eclipse</string>
+	<key>CFBundleExecutable</key>
+	<string>Eclipse</string>
+	<key>CFBundleGetInfoString</key>
+	<string>Stream games and other applications from another PC</string>
+	<key>CFBundleIconFile</key>
+	<string>moonlight</string>
+	<key>CFBundleIdentifier</key>
+	<string>io.github.notadeveloper4665.Eclipse</string>
+	<key>CFBundleName</key>
+	<string>Eclipse</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.5.8</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleVersion</key>
+	<string>0.5.8</string>
+	<key>GCSupportedGameControllers</key>
+	<array>
+		<dict>
+			<key>ProfileName</key>
+			<string>ExtendedGamepad</string>
+		</dict>
+	</array>
+	<key>GCSupportsControllerUserInteraction</key>
+	<true/>
+	<key>GCSupportsGameMode</key>
+	<true/>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.games</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>15.0</string>
+	<key>LSSupportsGameMode</key>
+	<true/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_nvstream._tcp</string>
+	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Eclipse uses your camera only when you enable camera forwarding.</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Eclipse discovers and connects to your streaming host on the local network.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Eclipse uses your microphone only when you enable microphone forwarding.</string>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
+	<key>NSSupportsAutomaticGraphicsSwitching</key>
+	<true/>
+</dict>
+</plist>
