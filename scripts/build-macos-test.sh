@@ -44,6 +44,10 @@ run_bounded 90 ./recording-smoke video.h264 audio.ogg recording-h264.mkv h264
 run_bounded 60 ffmpeg -hide_banner -loglevel error -i recording-h264.mkv -f null -
 popd
 run_bounded 600 macdeployqt "$app" -qmldir="$source_root/app/gui" -always-overwrite
+# Qt bundles optional SQL drivers unrelated to Eclipse. Keep SQLite for QML
+# local storage, but omit drivers requiring external database installations.
+find "$app/Contents/PlugIns/sqldrivers" -type f -name '*.dylib' ! -name 'libqsqlite.dylib' -delete
+run_bounded 120 python3 "$repo_root/scripts/fix-macos-library-paths.py" "$app"
 run_bounded 300 python3 "$repo_root/scripts/verify-macos-bundle.py" "$app"
 run_bounded 180 codesign --force --deep --sign - "$app"
 run_bounded 120 codesign --verify --deep --strict --verbose=2 "$app"

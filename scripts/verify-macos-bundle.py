@@ -19,9 +19,13 @@ for path in app.rglob('*'):
     count += 1
     if subprocess.run(['lipo', str(path), '-verify_arch', 'arm64'], capture_output=True).returncode:
         errors.append(f'No arm64 slice: {path}')
-    linked = subprocess.check_output(['otool', '-L', str(path)], text=True).splitlines()[1:]
+    linked = subprocess.check_output(['otool', '-arch', 'arm64', '-L', str(path)], text=True).splitlines()[1:]
+    ids = subprocess.check_output(['otool', '-arch', 'arm64', '-D', str(path)], text=True).splitlines()[1:]
+    identities = {line.strip() for line in ids}
     for line in linked:
         dep = line.strip().split(' (')[0]
+        if dep in identities:
+            continue
         if dep.startswith(('/System/Library/', '/usr/lib/')):
             continue
         if dep.startswith('@rpath/'):
