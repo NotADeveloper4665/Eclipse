@@ -1,0 +1,5 @@
+
+macos-work/
+
+__pycache__/
+*.pyc

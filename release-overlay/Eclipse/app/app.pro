@@ -6,7 +6,8 @@ unix:!macx {
     TARGET = moonlight
 } else {
     # On macOS, this is the name displayed in the global menu bar
-    TARGET = Moonlight
+    macx: TARGET = Eclipse
+    else: TARGET = Moonlight
 }
 
 include(../globaldefs.pri)
@@ -169,6 +170,8 @@ macx {
     }
 
     LIBS += -lobjc -framework VideoToolbox -framework AVFoundation -framework CoreVideo -framework CoreGraphics -framework CoreMedia -framework AppKit -framework Metal -framework QuartzCore
+    # Artemis macOS linkage: CoreAudio/AudioUnit support alongside SDL.
+    LIBS += -framework CoreAudio -framework AudioUnit
     CONFIG += ffmpeg
 }
 
@@ -571,7 +574,8 @@ win32 {
 macx {
     # Create Info.plist in object dir with the correct version string
     system(cp $$PWD/Info.plist $$OUT_PWD/Info.plist)
-    system(sed -i -e 's/VERSION/$$cat(version.txt)/g' $$OUT_PWD/Info.plist)
+    system(/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $$cat(version.txt)\" $$OUT_PWD/Info.plist)
+    system(/usr/libexec/PlistBuddy -c \"Set :CFBundleShortVersionString $$cat(version.txt)\" $$OUT_PWD/Info.plist)
 
     QMAKE_INFO_PLIST = $$OUT_PWD/Info.plist
 
