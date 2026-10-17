@@ -318,10 +318,10 @@ bool ControlCenter::handleEvent(const SDL_Event& e, QSize windowSize)
                 m_OpenDropdown = NoDropdown; m_DropdownApply = {}; break;
             case SDLK_UP:
             case SDLK_LEFT:
-                m_DropdownSelection = (m_DropdownSelection + m_DropdownItems.size() - 1) % std::max(1,m_DropdownItems.size()); break;
+                m_DropdownSelection = (m_DropdownSelection + m_DropdownItems.size() - 1) % std::max(1, int(m_DropdownItems.size())); break;
             case SDLK_DOWN:
             case SDLK_RIGHT:
-                m_DropdownSelection = (m_DropdownSelection + 1) % std::max(1,m_DropdownItems.size()); break;
+                m_DropdownSelection = (m_DropdownSelection + 1) % std::max(1, int(m_DropdownItems.size())); break;
             case SDLK_RETURN:
             case SDLK_SPACE:
                 if (m_DropdownApply) m_DropdownApply(m_DropdownSelection);
@@ -352,10 +352,10 @@ bool ControlCenter::handleEvent(const SDL_Event& e, QSize windowSize)
                 m_OpenDropdown = NoDropdown; m_DropdownApply = {}; break;
             case SDL_CONTROLLER_BUTTON_DPAD_UP:
             case SDL_CONTROLLER_BUTTON_DPAD_LEFT:
-                m_DropdownSelection = (m_DropdownSelection + m_DropdownItems.size() - 1) % std::max(1,m_DropdownItems.size()); break;
+                m_DropdownSelection = (m_DropdownSelection + m_DropdownItems.size() - 1) % std::max(1, int(m_DropdownItems.size())); break;
             case SDL_CONTROLLER_BUTTON_DPAD_DOWN:
             case SDL_CONTROLLER_BUTTON_DPAD_RIGHT:
-                m_DropdownSelection = (m_DropdownSelection + 1) % std::max(1,m_DropdownItems.size()); break;
+                m_DropdownSelection = (m_DropdownSelection + 1) % std::max(1, int(m_DropdownItems.size())); break;
             case SDL_CONTROLLER_BUTTON_A:
                 if (m_DropdownApply) m_DropdownApply(m_DropdownSelection);
                 m_Dirty = true; m_OpenDropdown = NoDropdown; m_DropdownApply = {}; break;
