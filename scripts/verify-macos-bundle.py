@@ -17,7 +17,7 @@ for path in app.rglob('*'):
     if 'Mach-O' not in kind:
         continue
     count += 1
-    if subprocess.run(['lipo', '-verify_arch', 'arm64', str(path)], capture_output=True).returncode:
+    if subprocess.run(['lipo', str(path), '-verify_arch', 'arm64'], capture_output=True).returncode:
         errors.append(f'No arm64 slice: {path}')
     linked = subprocess.check_output(['otool', '-L', str(path)], text=True).splitlines()[1:]
     for line in linked:

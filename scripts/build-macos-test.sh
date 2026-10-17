@@ -22,7 +22,7 @@ qmake6 "$source_root/moonlight-qt.pro" CONFIG+=release CONFIG-=debug_and_release
 make -j3
 app="$PWD/app/Eclipse.app"
 test -x "$app/Contents/MacOS/Eclipse"
-lipo -verify_arch arm64 "$app/Contents/MacOS/Eclipse"
+lipo "$app/Contents/MacOS/Eclipse" -verify_arch arm64
 QT_QPA_PLATFORM=offscreen "$app/Contents/MacOS/Eclipse" --version
 # Exercise Eclipse's actual muxer against the native FFmpeg used by the app.
 mkdir -p "$repo_root/macos-work/recording-test"
