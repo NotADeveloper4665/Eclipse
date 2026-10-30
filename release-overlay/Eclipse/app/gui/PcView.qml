@@ -117,7 +117,7 @@ CenteredGridView {
             radius: 12
             color: Material.theme === Material.Dark ? eclipseTheme.darkSurfaceVariant : eclipseTheme.lightSurfaceVariant
             border.width: parent.activeFocus ? 2 : 1
-            border.color: parent.activeFocus ? eclipseTheme.lightPrimary : (Material.theme === Material.Dark ? eclipseTheme.darkOutline : eclipseTheme.lightOutline)
+            border.color: parent.activeFocus ? (Material.theme === Material.Dark ? eclipseTheme.darkPrimary : eclipseTheme.lightPrimary) : (Material.theme === Material.Dark ? eclipseTheme.darkOutline : eclipseTheme.lightOutline)
         }
 
         property alias pcContextMenu : pcContextMenuLoader.item
