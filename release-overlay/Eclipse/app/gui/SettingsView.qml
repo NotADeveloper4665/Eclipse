@@ -2,6 +2,7 @@ import QtQuick 2.9
 import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.2
 import QtQuick.Window 2.2
+import Qt.labs.settings 1.1
 
 import StreamingPreferences 1.0
 import ComputerManager 1.0
@@ -110,6 +111,25 @@ Flickable {
             Column {
                 anchors.fill: parent
                 spacing: 5
+
+                Settings {
+                    id: appearanceSettings
+                    category: "appearance"
+                    property int theme: 0
+                }
+
+                Label {
+                    width: parent.width
+                    text: qsTr("Appearance")
+                    font.pointSize: 12
+                }
+
+                ComboBox {
+                    width: parent.width
+                    model: [qsTr("System default"), qsTr("Light"), qsTr("Dark")]
+                    currentIndex: appearanceSettings.theme
+                    onActivated: appearanceSettings.theme = currentIndex
+                }
 
                 Label {
                     width: parent.width
