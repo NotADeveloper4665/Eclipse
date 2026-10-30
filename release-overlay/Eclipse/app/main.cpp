@@ -1073,10 +1073,23 @@ int main(int argc, char *argv[])
         engine.rootContext()->setContextProperty("initialView", initialView);
         engine.rootContext()->setContextProperty("runConfigChecks", commandLineParserResult == GlobalCommandLineParser::NormalStartRequested);
 
+#ifdef ECLIPSE_UI_TEST
+        QObject::connect(&engine, &QQmlApplicationEngine::warnings, &engine,
+                         [](const QList<QQmlError>& warnings) {
+            for (const QQmlError& warning : warnings)
+                qCritical().noquote() << warning.toString();
+        });
+#endif
         // Load the main.qml file
         engine.load(QUrl(QStringLiteral("qrc:/gui/main.qml")));
-        if (engine.rootObjects().isEmpty())
+        if (engine.rootObjects().isEmpty()) {
+#ifdef ECLIPSE_UI_TEST
+            qFatal("Eclipse UI test could not create the main QML root (%s)",
+                   qPrintable(initialView));
+#else
             return -1;
+#endif
+        }
 #ifdef ECLIPSE_UI_TEST
         QObject* root = engine.rootObjects().first();
         QTimer::singleShot(0, &engine, [root] {
