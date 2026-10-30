@@ -22,6 +22,13 @@ ApplicationWindow {
     width: 1280
     height: 600
 
+    // Shared Material-inspired theme foundation. The explicit appearance
+    // selector will override System when it is added to preferences.
+    EclipseTheme { id: eclipseTheme }
+    Material.theme: Material.System
+    Material.primary: Material.theme === Material.Dark ? eclipseTheme.darkPrimary : eclipseTheme.lightPrimary
+    Material.accent: Material.theme === Material.Dark ? eclipseTheme.darkPrimary : eclipseTheme.lightPrimary
+
     // This function runs prior to creation of the initial StackView item
     function doEarlyInit() {
         // Override the background color to Material 2 colors for Qt 6.5+
