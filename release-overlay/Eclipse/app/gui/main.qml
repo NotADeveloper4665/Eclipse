@@ -32,6 +32,7 @@ ApplicationWindow {
         // 0 = System, 1 = Light, 2 = Dark
         property int theme: 0
     }
+    property alias appearanceTheme: appearanceSettings.theme
     Material.theme: appearanceSettings.theme === 1 ? Material.Light : (appearanceSettings.theme === 2 ? Material.Dark : Material.System)
     Material.primary: Material.theme === Material.Dark ? eclipseTheme.darkPrimary : eclipseTheme.lightPrimary
     Material.accent: Material.theme === Material.Dark ? eclipseTheme.darkPrimary : eclipseTheme.lightPrimary
