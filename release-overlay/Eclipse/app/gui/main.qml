@@ -3,6 +3,7 @@ import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
 import QtQuick.Window 2.2
 import QtQuick.Controls.Material 2.2
+import Qt.labs.settings 1.1
 
 import ComputerManager 1.0
 import AutoUpdateChecker 1.0
@@ -25,7 +26,13 @@ ApplicationWindow {
     // Shared Material-inspired theme foundation. The explicit appearance
     // selector will override System when it is added to preferences.
     EclipseTheme { id: eclipseTheme }
-    Material.theme: Material.System
+    Settings {
+        id: appearanceSettings
+        category: "appearance"
+        // 0 = System, 1 = Light, 2 = Dark
+        property int theme: 0
+    }
+    Material.theme: appearanceSettings.theme === 1 ? Material.Light : (appearanceSettings.theme === 2 ? Material.Dark : Material.System)
     Material.primary: Material.theme === Material.Dark ? eclipseTheme.darkPrimary : eclipseTheme.lightPrimary
     Material.accent: Material.theme === Material.Dark ? eclipseTheme.darkPrimary : eclipseTheme.lightPrimary
 
