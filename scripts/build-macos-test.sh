@@ -28,6 +28,14 @@ qmake6 "$source_root/moonlight-qt.pro" CONFIG+=release CONFIG-=debug_and_release
   QMAKE_APPLE_DEVICE_ARCHS=arm64 QMAKE_MACOSX_DEPLOYMENT_TARGET=15.0
 make -j3
 app="$PWD/app/Eclipse.app"
+# FFmpeg can retain a runtime reference to Brotli common even when
+# macdeployqt does not discover it as a direct dependency. Bundle the exact
+# Homebrew runtime library so the app is self-contained.
+frameworks="$app/Contents/Frameworks"
+mkdir -p "$frameworks"
+brotli_common="$(brew --prefix brotli)/lib/libbrotlicommon.1.dylib"
+test -f "$brotli_common"
+cp -L "$brotli_common" "$frameworks/libbrotlicommon.1.dylib"
 test -x "$app/Contents/MacOS/Eclipse"
 lipo "$app/Contents/MacOS/Eclipse" -verify_arch arm64
 run_bounded 30 env QT_QPA_PLATFORM=offscreen "$app/Contents/MacOS/Eclipse" --version
