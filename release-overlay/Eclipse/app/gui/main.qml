@@ -23,8 +23,7 @@ ApplicationWindow {
     width: 1280
     height: 600
 
-    // Shared Material-inspired theme foundation. The explicit appearance
-    // selector will override System when it is added to preferences.
+    // Shared Material-inspired theme foundation with a persisted appearance selector.
     EclipseTheme { id: eclipseTheme }
     Settings {
         id: appearanceSettings
