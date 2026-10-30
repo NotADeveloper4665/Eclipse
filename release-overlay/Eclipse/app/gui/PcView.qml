@@ -115,9 +115,9 @@ CenteredGridView {
             anchors.fill: parent
             anchors.margins: 8
             radius: 12
-            color: Material.theme === Material.Dark ? "#292B36" : "#EAE7EF"
+            color: Material.theme === Material.Dark ? eclipseTheme.darkSurfaceVariant : eclipseTheme.lightSurfaceVariant
             border.width: parent.activeFocus ? 2 : 1
-            border.color: parent.activeFocus ? "#6750A4" : (Material.theme === Material.Dark ? "#454351" : "#D8D4DE")
+            border.color: parent.activeFocus ? eclipseTheme.lightPrimary : (Material.theme === Material.Dark ? eclipseTheme.darkOutline : eclipseTheme.lightOutline)
         }
 
         property alias pcContextMenu : pcContextMenuLoader.item
