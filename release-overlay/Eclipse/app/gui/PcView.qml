@@ -99,7 +99,7 @@ CenteredGridView {
             elide: Label.ElideRight
             text: StreamingPreferences.enableMdns ? qsTr("Searching for compatible hosts on your local network...")
                                                   : qsTr("Automatic PC discovery is disabled. Add your PC manually.")
-            font.pointSize: 20
+            font.pointSize: 16
             verticalAlignment: Text.AlignVCenter
             wrapMode: Text.Wrap
         }
@@ -110,6 +110,15 @@ CenteredGridView {
     delegate: NavigableItemDelegate {
         width: 300; height: 320;
         grid: pcGrid
+
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: 8
+            radius: 12
+            color: Material.theme === Material.Dark ? "#292B36" : "#EAE7EF"
+            border.width: parent.activeFocus ? 2 : 1
+            border.color: parent.activeFocus ? "#6750A4" : (Material.theme === Material.Dark ? "#454351" : "#D8D4DE")
+        }
 
         property alias pcContextMenu : pcContextMenuLoader.item
 
@@ -155,7 +164,7 @@ CenteredGridView {
             width: parent.width
             anchors.top: pcIcon.bottom
             anchors.bottom: parent.bottom
-            font.pointSize: 36
+            font.pointSize: 24
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap
             elide: Text.ElideRight
