@@ -1,5 +1,5 @@
 Name:           moonlight-eclipse
-Version:        0.5.7
+Version:        0.5.8
 Release:        1%{?dist}
 Summary:        Moonlight streaming client with the Eclipse control center
 License:        GPL-3.0-only
@@ -65,6 +65,11 @@ install -Dpm0644 app/res/moonlight.svg \
 %{_datadir}/icons/hicolor/scalable/apps/moonlight-eclipse.svg
 
 %changelog
+* Fri Oct 30 2026 Eclipse contributors <eclipse@example.invalid> - 0.5.8-1
+- Add unified Material-inspired interface with persisted System, Light, and Dark appearance modes
+- Align host, settings, and in-session controls with shared semantic theme tokens
+- Preserve touchscreen input forwarding and existing streaming controls
+
 * Thu Oct 08 2026 Eclipse contributors <eclipse@example.invalid> - 0.5.6-1
 - Keep frame-buffering controls inside a bordered settings group.
 - Add and pair Syzygy hosts using an optional passkey below the host address.
