@@ -32,18 +32,18 @@ ApplicationWindow {
         property int theme: 0
     }
     property alias appearanceTheme: appearanceSettings.theme
+    SystemPalette { id: systemPalette }
+    readonly property bool useDarkPalette: appearanceSettings.theme === 2 ||
+        (appearanceSettings.theme === 0 && systemPalette.window.hsvValue < 0.5)
     Material.theme: appearanceSettings.theme === 1 ? Material.Light : (appearanceSettings.theme === 2 ? Material.Dark : Material.System)
-    Material.primary: Material.theme === Material.Dark ? eclipseTheme.darkPrimary : eclipseTheme.lightPrimary
-    Material.accent: Material.theme === Material.Dark ? eclipseTheme.darkPrimary : eclipseTheme.lightPrimary
+    Material.primary: useDarkPalette ? eclipseTheme.darkPrimary : eclipseTheme.lightPrimary
+    Material.accent: useDarkPalette ? eclipseTheme.darkPrimary : eclipseTheme.lightPrimary
+    Material.background: appearanceSettings.theme === 1 ? eclipseTheme.lightBackground :
+                         (appearanceSettings.theme === 2 ? eclipseTheme.darkBackground : systemPalette.window)
 
     // This function runs prior to creation of the initial StackView item
     function doEarlyInit() {
-        // Override the background color to Material 2 colors for Qt 6.5+
-        // in order to improve contrast between GFE's placeholder box art
-        // and the background of the app grid.
-        if (SystemProperties.usesMaterial3Theme) {
-            Material.background = "#303030"
-        }
+        // Material surface colors are bound to the selected appearance above.
 
         SdlGamepadKeyNavigation.enable()
     }
