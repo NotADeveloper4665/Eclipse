@@ -111,6 +111,9 @@ public:
     Q_INVOKABLE void interrupt();
     Q_PROPERTY(bool reconnectRequested READ reconnectRequested NOTIFY reconnectRequestedChanged)
     bool reconnectRequested() const { return m_ReconnectRequested; }
+    Q_PROPERTY(QString reconnectSnapshotUrl READ reconnectSnapshotUrl NOTIFY reconnectSnapshotChanged)
+    QString reconnectSnapshotUrl() const { return m_ReconnectSnapshotUrl; }
+    Q_INVOKABLE void clearReconnectSnapshotFile(const QString& url) const;
     Q_INVOKABLE Session* createReconnectSession() {
         return m_HostUuid.isEmpty() ? new Session(m_Computer, m_App, m_Preferences)
                                     : new Session(m_Computer, m_App);
@@ -148,6 +151,7 @@ public:
 
 signals:
     void reconnectRequestedChanged();
+    void reconnectSnapshotChanged();
     void stageStarting(QString stage);
 
     void stageFailed(QString stage, int errorCode, QString failingPorts);
@@ -167,6 +171,8 @@ signals:
 
 private:
     bool m_ReconnectRequested = false;
+    QString m_ReconnectSnapshotUrl;
+    QString captureReconnectSnapshot();
     bool m_KeepHostAppRunning = false;
     void exec();
 
