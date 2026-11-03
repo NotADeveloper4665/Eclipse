@@ -980,24 +980,12 @@ int main(int argc, char *argv[])
     // Create the identity manager on the main thread
     IdentityManager::get();
 
-    // We require the Material theme
+    // Require the Material style, but let the persisted QML appearance selector
+    // control System, Light, and Dark. The previous forced-dark / Dense defaults
+    // overrode the new semantic palette and made the UI inconsistent.
     QQuickStyle::setStyle("Material");
-
-    // Our icons are styled for a dark theme, so we do not allow the user to override this
-    qputenv("QT_QUICK_CONTROLS_MATERIAL_THEME", "Dark");
-
-    // These are defaults that we allow the user to override
-    if (!qEnvironmentVariableIsSet("QT_QUICK_CONTROLS_MATERIAL_ACCENT")) {
-        qputenv("QT_QUICK_CONTROLS_MATERIAL_ACCENT", "Purple");
-    }
     if (!qEnvironmentVariableIsSet("QT_QUICK_CONTROLS_MATERIAL_VARIANT")) {
-        qputenv("QT_QUICK_CONTROLS_MATERIAL_VARIANT", "Dense");
-    }
-    if (!qEnvironmentVariableIsSet("QT_QUICK_CONTROLS_MATERIAL_PRIMARY")) {
-        // Qt 6.9 began to use a different shade of Material.Indigo when we use a dark theme
-        // (which is all the time). The new color looks washed out, so manually specify the
-        // old primary color unless the user overrides it themselves.
-        qputenv("QT_QUICK_CONTROLS_MATERIAL_PRIMARY", "#3F51B5");
+        qputenv("QT_QUICK_CONTROLS_MATERIAL_VARIANT", "Normal");
     }
 
     QQmlApplicationEngine engine;
@@ -1098,6 +1086,18 @@ int main(int argc, char *argv[])
         QTimer::singleShot(1000, &engine, [&app, &engine, root] {
             const auto pages = root->findChildren<QObject*>(QObject::tr("Settings"));
             if (pages.size() != 1) qFatal("Settings page failed to instantiate");
+            QObject* appearanceSelector = root->findChild<QObject*>("appearanceThemeSelector");
+            if (!appearanceSelector) qFatal("Material appearance selector did not instantiate");
+            const int originalTheme = root->property("appearanceTheme").toInt();
+            appearanceSelector->setProperty("currentIndex", 2);
+            if (!QMetaObject::invokeMethod(appearanceSelector, "activated", Q_ARG(int, 2)) ||
+                root->property("appearanceTheme").toInt() != 2)
+                qFatal("Dark appearance selection did not reach the application theme");
+            appearanceSelector->setProperty("currentIndex", originalTheme);
+            if (!QMetaObject::invokeMethod(appearanceSelector, "activated", Q_ARG(int, originalTheme)) ||
+                root->property("appearanceTheme").toInt() != originalTheme)
+                qFatal("Appearance selector could not restore its original value");
+
             QObject* selector = root->findChild<QObject*>("fsrPresetSelector");
             if (!selector) qFatal("FSR selector did not instantiate");
             selector->setProperty("currentIndex", 3);

@@ -84,6 +84,16 @@ CenteredGridView {
         // Dim the app if it's hidden
         opacity: model.hidden ? 0.4 : 1.0
 
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: 2
+            radius: 16
+            color: Window.window.useDarkPalette ? Window.window.eclipseTheme.darkSurfaceContainerLow : Window.window.eclipseTheme.lightSurfaceContainerLow
+            border.width: parent.activeFocus ? 2 : (parent.hovered ? 1 : 0)
+            border.color: parent.activeFocus ? (Window.window.useDarkPalette ? Window.window.eclipseTheme.darkPrimary : Window.window.eclipseTheme.lightPrimary) :
+                          (Window.window.useDarkPalette ? Window.window.eclipseTheme.darkOutlineVariant : Window.window.eclipseTheme.lightOutlineVariant)
+        }
+
         Image {
             property bool isPlaceholder: false
 

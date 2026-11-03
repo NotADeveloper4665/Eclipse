@@ -24,7 +24,8 @@ ApplicationWindow {
     height: 600
 
     // Shared Material-inspired theme foundation with a persisted appearance selector.
-    EclipseTheme { id: eclipseTheme }
+    EclipseTheme { id: themePalette }
+    property alias eclipseTheme: themePalette
     Settings {
         id: appearanceSettings
         category: "appearance"
@@ -38,8 +39,8 @@ ApplicationWindow {
     Material.theme: appearanceSettings.theme === 1 ? Material.Light : (appearanceSettings.theme === 2 ? Material.Dark : Material.System)
     Material.primary: useDarkPalette ? eclipseTheme.darkPrimary : eclipseTheme.lightPrimary
     Material.accent: useDarkPalette ? eclipseTheme.darkPrimary : eclipseTheme.lightPrimary
-    Material.background: appearanceSettings.theme === 1 ? eclipseTheme.lightBackground :
-                         (appearanceSettings.theme === 2 ? eclipseTheme.darkBackground : systemPalette.window)
+    Material.background: useDarkPalette ? eclipseTheme.darkBackground : eclipseTheme.lightBackground
+    Material.foreground: useDarkPalette ? eclipseTheme.darkOnBackground : eclipseTheme.lightOnBackground
 
     // This function runs prior to creation of the initial StackView item
     function doEarlyInit() {

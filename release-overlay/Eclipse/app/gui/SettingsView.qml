@@ -100,7 +100,7 @@ Flickable {
         width: settingsPage.compactLayout ? settingsPage.width : settingsPage.width / 2
         spacing: 15
 
-        GroupBox {
+        EclipseSettingsSection {
             id: basicSettingsGroupBox
             width: (parent.width - (parent.leftPadding + parent.rightPadding))
             padding: 12
@@ -118,6 +118,8 @@ Flickable {
                 }
 
                 ComboBox {
+                    id: appearanceThemeSelector
+                    objectName: "appearanceThemeSelector"
                     width: parent.width
                     model: [qsTr("System default"), qsTr("Light"), qsTr("Dark")]
                     currentIndex: Window.window.appearanceTheme
@@ -884,7 +886,7 @@ Flickable {
 
                 }
 
-                GroupBox {
+                EclipseSettingsSection {
                     id: frameBufferingGroup
                     objectName: "frameBufferingGroup"
                     width: parent.width
@@ -967,7 +969,7 @@ Flickable {
                                     :
                                       qsTr("HDR streaming is not supported on this PC.")
                 }
-                GroupBox {
+                EclipseSettingsSection {
                     id: clientScalingGroupBox
                     width: parent.width
                     padding: 12
@@ -1007,7 +1009,7 @@ Flickable {
                     }
                 }
 
-                GroupBox {
+                EclipseSettingsSection {
                     id: deviceForwardingGroup
                     property bool expanded: false
                     width: parent.width
@@ -1078,7 +1080,7 @@ Flickable {
             }
         }
 
-        GroupBox {
+        EclipseSettingsSection {
             id: streamingAutomationGroupBox
             width: (parent.width - (parent.leftPadding + parent.rightPadding))
             padding: 12
@@ -1090,6 +1092,8 @@ Flickable {
                 spacing: 5
 
                 CheckBox {
+                    id: wanOptimizationToggle
+                    objectName: "wanOptimizationToggle"
                     text: qsTr("WAN / 5G Optimization")
                     checked: StreamingPreferences.wanOptimization
                     onToggled: StreamingPreferences.wanOptimization = checked
@@ -1109,6 +1113,8 @@ Flickable {
                 }
                 Label { text: qsTr("Network transport (experimental QUIC)") }
                 ComboBox {
+                    id: quicTransportSelector
+                    objectName: "quicTransportSelector"
                     width: parent.width
                     model: [qsTr("Automatic — prefer QUIC"), qsTr("Force QUIC"), qsTr("GameStream")]
                     currentIndex: StreamingPreferences.transportMode
@@ -1121,6 +1127,8 @@ Flickable {
                 }
 
                 CheckBox {
+                    id: adaptiveBitrateToggle
+                    objectName: "adaptiveBitrateToggle"
                     width: parent.width
                     text: qsTr("Adjust bitrate automatically")
                     font.pointSize: 12
@@ -1140,6 +1148,8 @@ Flickable {
                 }
 
                 AutoResizingComboBox {
+                    id: adaptiveBitrateModeSelector
+                    objectName: "adaptiveBitrateModeSelector"
                     width: parent.width
                     enabled: StreamingPreferences.dynamicAdaptiveBitrate
                     textRole: "text"
@@ -1162,7 +1172,7 @@ Flickable {
             }
         }
 
-        GroupBox {
+        EclipseSettingsSection {
 
             id: audioSettingsGroupBox
             width: (parent.width - (parent.leftPadding + parent.rightPadding))
@@ -1256,7 +1266,7 @@ Flickable {
             }
         }
 
-        GroupBox {
+        EclipseSettingsSection {
             id: hostSettingsGroupBox
             width: (parent.width - (parent.leftPadding + parent.rightPadding))
             padding: 12
@@ -1307,7 +1317,7 @@ Flickable {
             }
         }
 
-        GroupBox {
+        EclipseSettingsSection {
             id: uiSettingsGroupBox
             width: (parent.width - (parent.leftPadding + parent.rightPadding))
             padding: 12
@@ -1617,7 +1627,7 @@ Flickable {
         width: settingsPage.compactLayout ? settingsPage.width : settingsPage.width / 2
         spacing: 15
 
-        GroupBox {
+        EclipseSettingsSection {
             id: inputSettingsGroupBox
             width: (parent.width - (parent.leftPadding + parent.rightPadding))
             padding: 12
@@ -1765,7 +1775,7 @@ Flickable {
             }
         }
 
-        GroupBox {
+        EclipseSettingsSection {
             id: gamepadSettingsGroupBox
             width: (parent.width - (parent.leftPadding + parent.rightPadding))
             padding: 12
@@ -1840,7 +1850,7 @@ Flickable {
             }
         }
 
-        GroupBox {
+        EclipseSettingsSection {
             id: guestPermissionsGroupBox
             width: (parent.width - (parent.leftPadding + parent.rightPadding))
             padding: 12
@@ -1859,6 +1869,7 @@ Flickable {
                 }
 
                 CheckBox {
+                    objectName: "viewOnlyModeToggle"
                     width: parent.width
                     text: qsTr("View-only mode (block all input)")
                     font.pointSize: 12
@@ -1867,6 +1878,7 @@ Flickable {
                 }
 
                 CheckBox {
+                    objectName: "guestKeyboardToggle"
                     width: parent.width
                     text: qsTr("Allow keyboard input")
                     font.pointSize: 12
@@ -1876,6 +1888,7 @@ Flickable {
                 }
 
                 CheckBox {
+                    objectName: "guestPointerToggle"
                     width: parent.width
                     text: qsTr("Allow mouse and touch input")
                     font.pointSize: 12
@@ -1885,6 +1898,7 @@ Flickable {
                 }
 
                 CheckBox {
+                    objectName: "guestGamepadToggle"
                     width: parent.width
                     text: qsTr("Allow controller input")
                     font.pointSize: 12
@@ -1902,7 +1916,7 @@ Flickable {
             }
         }
 
-        GroupBox {
+        EclipseSettingsSection {
             id: advancedSettingsGroupBox
             width: (parent.width - (parent.leftPadding + parent.rightPadding))
             padding: 12
