@@ -1145,11 +1145,11 @@ int main(int argc, char *argv[])
 
             const bool savedWan = preferences->wanOptimization;
             wanToggle->setProperty("checked", !savedWan);
-            if (!QMetaObject::invokeMethod(wanToggle, "toggled", Q_ARG(bool, !savedWan)) ||
+            if (!QMetaObject::invokeMethod(wanToggle, "toggled") ||
                 preferences->wanOptimization != !savedWan)
                 qFatal("WAN optimization toggle is not wired to StreamingPreferences");
             wanToggle->setProperty("checked", savedWan);
-            QMetaObject::invokeMethod(wanToggle, "toggled", Q_ARG(bool, savedWan));
+            QMetaObject::invokeMethod(wanToggle, "toggled");
 
             const bool savedAdaptive = preferences->dynamicAdaptiveBitrate;
             adaptiveToggle->setProperty("checked", !savedAdaptive);
