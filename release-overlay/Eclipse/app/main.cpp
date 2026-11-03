@@ -1093,10 +1093,81 @@ int main(int argc, char *argv[])
             if (!QMetaObject::invokeMethod(appearanceSelector, "activated", Q_ARG(int, 2)) ||
                 root->property("appearanceTheme").toInt() != 2)
                 qFatal("Dark appearance selection did not reach the application theme");
+            // Verify that selecting either explicit palette changes the real root theme.
+            appearanceSelector->setProperty("currentIndex", 1);
+            if (!QMetaObject::invokeMethod(appearanceSelector, "activated", Q_ARG(int, 1)) ||
+                root->property("appearanceTheme").toInt() != 1 || root->property("useDarkPalette").toBool())
+                qFatal("Light appearance did not activate the light semantic palette");
+            appearanceSelector->setProperty("currentIndex", 2);
+            if (!QMetaObject::invokeMethod(appearanceSelector, "activated", Q_ARG(int, 2)) ||
+                root->property("appearanceTheme").toInt() != 2 || !root->property("useDarkPalette").toBool())
+                qFatal("Dark appearance did not activate the dark semantic palette");
             appearanceSelector->setProperty("currentIndex", originalTheme);
             if (!QMetaObject::invokeMethod(appearanceSelector, "activated", Q_ARG(int, originalTheme)) ||
                 root->property("appearanceTheme").toInt() != originalTheme)
                 qFatal("Appearance selector could not restore its original value");
+
+            auto* preferences = StreamingPreferences::get();
+            auto* transportSelector = root->findChild<QObject*>("quicTransportSelector");
+            auto* wanToggle = root->findChild<QObject*>("wanOptimizationToggle");
+            auto* adaptiveToggle = root->findChild<QObject*>("adaptiveBitrateToggle");
+            auto* latencySlider = root->findChild<QObject*>("minimumLatencySlider");
+            auto* viewOnlyToggle = root->findChild<QObject*>("viewOnlyModeToggle");
+            auto* keyboardToggle = root->findChild<QObject*>("guestKeyboardToggle");
+            auto* pointerToggle = root->findChild<QObject*>("guestPointerToggle");
+            auto* gamepadToggle = root->findChild<QObject*>("guestGamepadToggle");
+            if (!transportSelector || !wanToggle || !adaptiveToggle || !latencySlider ||
+                !viewOnlyToggle || !keyboardToggle || !pointerToggle || !gamepadToggle)
+                qFatal("A network, latency, or guest-input setting control did not instantiate");
+
+            const int savedTransport = preferences->transportMode;
+            const int testTransport = savedTransport == 2 ? 0 : 2;
+            transportSelector->setProperty("currentIndex", testTransport);
+            if (!QMetaObject::invokeMethod(transportSelector, "activated", Q_ARG(int, testTransport)) ||
+                preferences->transportMode != testTransport)
+                qFatal("Transport selection is not wired to StreamingPreferences");
+            transportSelector->setProperty("currentIndex", savedTransport);
+            QMetaObject::invokeMethod(transportSelector, "activated", Q_ARG(int, savedTransport));
+
+            const bool savedWan = preferences->wanOptimization;
+            wanToggle->setProperty("checked", !savedWan);
+            if (!QMetaObject::invokeMethod(wanToggle, "toggled", Q_ARG(bool, !savedWan)) ||
+                preferences->wanOptimization != !savedWan)
+                qFatal("WAN optimization toggle is not wired to StreamingPreferences");
+            wanToggle->setProperty("checked", savedWan);
+            QMetaObject::invokeMethod(wanToggle, "toggled", Q_ARG(bool, savedWan));
+
+            const bool savedAdaptive = preferences->dynamicAdaptiveBitrate;
+            adaptiveToggle->setProperty("checked", !savedAdaptive);
+            if (preferences->dynamicAdaptiveBitrate != !savedAdaptive)
+                qFatal("Adaptive bitrate toggle is not wired to StreamingPreferences");
+            adaptiveToggle->setProperty("checked", savedAdaptive);
+
+            const int savedLatency = preferences->minimumLatency;
+            const int testLatency = savedLatency == 17 ? 18 : 17;
+            latencySlider->setProperty("value", testLatency);
+            if (preferences->minimumLatency != testLatency)
+                qFatal("Minimum-latency slider is not wired to StreamingPreferences");
+            latencySlider->setProperty("value", savedLatency);
+
+            const bool savedViewOnly = preferences->viewOnlyMode;
+            const bool savedKeyboard = preferences->guestAllowKeyboard;
+            const bool savedPointer = preferences->guestAllowPointer;
+            const bool savedGamepad = preferences->guestAllowGamepad;
+            viewOnlyToggle->setProperty("checked", !savedViewOnly);
+            keyboardToggle->setProperty("checked", !savedKeyboard);
+            pointerToggle->setProperty("checked", !savedPointer);
+            gamepadToggle->setProperty("checked", !savedGamepad);
+            if (preferences->viewOnlyMode != !savedViewOnly ||
+                preferences->guestAllowKeyboard != !savedKeyboard ||
+                preferences->guestAllowPointer != !savedPointer ||
+                preferences->guestAllowGamepad != !savedGamepad)
+                qFatal("Guest-input permission controls are not wired to StreamingPreferences");
+            viewOnlyToggle->setProperty("checked", savedViewOnly);
+            keyboardToggle->setProperty("checked", savedKeyboard);
+            pointerToggle->setProperty("checked", savedPointer);
+            gamepadToggle->setProperty("checked", savedGamepad);
+            preferences->save();
 
             QObject* selector = root->findChild<QObject*>("fsrPresetSelector");
             if (!selector) qFatal("FSR selector did not instantiate");
