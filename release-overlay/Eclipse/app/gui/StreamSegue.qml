@@ -45,11 +45,18 @@ Item {
         targetSession.readyForDeletion.connect(sessionReadyForDeletion)
     }
 
-    function clearReconnectSnapshot()
+    function releaseReconnectSnapshotFile()
     {
+        // The image has already been decoded into memory. Delete the temporary
+        // PNG without clearing its URL, so the frozen frame remains on screen.
         if (reconnectSnapshotUrl.toString().length > 0 && session) {
             session.clearReconnectSnapshotFile(reconnectSnapshotUrl.toString())
         }
+    }
+
+    function clearReconnectSnapshot()
+    {
+        releaseReconnectSnapshotFile()
         reconnectSnapshotUrl = ""
     }
 
@@ -280,7 +287,7 @@ Item {
         z: 1000
         reconnecting: streamSegue.reconnecting
         snapshotUrl: streamSegue.reconnectSnapshotUrl
-        onSnapshotLoaded: streamSegue.clearReconnectSnapshot()
+        onSnapshotLoaded: streamSegue.releaseReconnectSnapshotFile()
     }
 
     Row {
