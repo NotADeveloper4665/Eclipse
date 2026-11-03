@@ -53,6 +53,11 @@
 #include <QDir>
 #include <QDateTime>
 #include <QStandardPaths>
+
+// X11 headers define None as a macro, which collides with the decoder enum.
+#ifdef None
+#undef None
+#endif
 #include <QFile>
 #include <QTemporaryFile>
 #include <QUrl>

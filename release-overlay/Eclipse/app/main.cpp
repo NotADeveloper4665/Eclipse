@@ -1081,19 +1081,18 @@ int main(int argc, char *argv[])
         }
 #ifdef ECLIPSE_UI_TEST
         QObject* root = engine.rootObjects().first();
-        QQmlComponent reconnectSegueComponent(&engine, QUrl(QStringLiteral("qrc:/gui/StreamSegue.qml")));
-        if (reconnectSegueComponent.isError())
-            qFatal("Reconnect segue failed to load: %s", qPrintable(reconnectSegueComponent.errorString()));
-        QObject* reconnectSegue = reconnectSegueComponent.create();
-        if (!reconnectSegue) qFatal("Reconnect segue could not be instantiated");
-        reconnectSegue->setProperty("reconnecting", true);
-        QObject* reconnectOverlay = reconnectSegue->findChild<QObject*>("reconnectOverlay");
-        QObject* reconnectStatus = reconnectSegue->findChild<QObject*>("reconnectStatusText");
-        if (!reconnectOverlay || !reconnectOverlay->property("visible").toBool())
+        QQmlComponent reconnectOverlayComponent(&engine, QUrl(QStringLiteral("qrc:/gui/ReconnectOverlay.qml")));
+        if (reconnectOverlayComponent.isError())
+            qFatal("Reconnect overlay failed to load: %s", qPrintable(reconnectOverlayComponent.errorString()));
+        QObject* reconnectOverlay = reconnectOverlayComponent.create();
+        if (!reconnectOverlay) qFatal("Reconnect overlay could not be instantiated");
+        reconnectOverlay->setProperty("reconnecting", true);
+        QObject* reconnectStatus = reconnectOverlay->findChild<QObject*>("reconnectStatusText");
+        if (!reconnectOverlay->property("visible").toBool())
             qFatal("Reconnecting overlay did not become visible");
         if (!reconnectStatus || reconnectStatus->property("text").toString() != QStringLiteral("Reconnecting"))
             qFatal("Reconnect status text did not render");
-        delete reconnectSegue;
+        delete reconnectOverlay;
 
         QTimer::singleShot(0, &engine, [root] {
             if (!QMetaObject::invokeMethod(root, "openSettingsView")) qFatal("Settings route did not execute");

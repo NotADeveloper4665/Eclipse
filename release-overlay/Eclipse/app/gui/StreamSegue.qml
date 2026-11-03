@@ -7,6 +7,7 @@ import Session 1.0
 import SystemProperties 1.0
 
 Item {
+    id: streamSegue
     property Session session
     property var reconnectSession: null
     property string reconnectSnapshotUrl: ""
@@ -272,75 +273,14 @@ Item {
     }
 
 
-    // The previous video frame remains visible during a reconnect. Session
-    // captures and blurs it before destroying the SDL stream window.
-    Item {
+    // Keep the last captured frame visible until the replacement stream is live.
+    ReconnectOverlay {
         id: reconnectOverlay
-        objectName: "reconnectOverlay"
         anchors.fill: parent
         z: 1000
-        visible: reconnecting
-        opacity: reconnecting ? 1.0 : 0.0
-
-        Behavior on opacity {
-            NumberAnimation { duration: 180 }
-        }
-
-        Rectangle {
-            anchors.fill: parent
-            color: "#11131B"
-        }
-
-        Image {
-            id: reconnectFrame
-            anchors.fill: parent
-            source: reconnectSnapshotUrl
-            fillMode: Image.PreserveAspectCrop
-            asynchronous: false
-            cache: false
-            smooth: true
-            visible: reconnectSnapshotUrl.toString().length > 0
-
-            onStatusChanged: {
-                if (status === Image.Ready && reconnecting && session) {
-                    session.clearReconnectSnapshotFile(reconnectSnapshotUrl.toString())
-                }
-            }
-        }
-
-        Rectangle {
-            anchors.fill: parent
-            color: "#700D101B"
-        }
-
-        Column {
-            anchors.centerIn: parent
-            spacing: 14
-
-            BusyIndicator {
-                anchors.horizontalCenter: parent.horizontalCenter
-                running: reconnecting
-                visible: reconnecting
-                width: 42
-                height: 42
-            }
-
-            Label {
-                objectName: "reconnectStatusText"
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTr("Reconnecting")
-                color: "#FFFFFF"
-                font.pixelSize: 25
-                font.weight: Font.DemiBold
-            }
-
-            Label {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: qsTr("Restoring your stream connection")
-                color: "#D5D0E2"
-                font.pixelSize: 14
-            }
-        }
+        reconnecting: streamSegue.reconnecting
+        snapshotUrl: streamSegue.reconnectSnapshotUrl
+        onSnapshotLoaded: streamSegue.clearReconnectSnapshot()
     }
 
     Row {
