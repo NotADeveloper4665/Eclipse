@@ -1653,7 +1653,7 @@ Flickable {
                     ToolTip.timeout: 10000
                     ToolTip.visible: hovered
                     ToolTip.text: qsTr("This enables seamless mouse control without capturing the client's mouse cursor. It is ideal for remote desktop usage but will not work in most games.") + " " +
-                                  qsTr("You can toggle this while streaming using Ctrl+Alt+Shift+M.") + "\n\n" +
+                                  (Qt.platform.os === "osx" ? qsTr("You can toggle this while streaming using ⌘+Option+Shift+M.") : qsTr("You can toggle this while streaming using Ctrl+Alt+Shift+M.")) + "\n\n" +
                                   qsTr("NOTE: Due to a bug in GeForce Experience, this option may not work properly if your host PC has multiple monitors.")
                 }
 
@@ -1672,8 +1672,8 @@ Flickable {
                         ToolTip.delay: 1000
                         ToolTip.timeout: 10000
                         ToolTip.visible: hovered
-                        ToolTip.text: qsTr("This enables the capture of system-wide keyboard shortcuts like Alt+Tab that would normally be handled by the client OS while streaming.") + "\n\n" +
-                                      qsTr("NOTE: Certain keyboard shortcuts like Ctrl+Alt+Del on Windows cannot be intercepted by any application, including Moonlight.")
+                        ToolTip.text: (Qt.platform.os === "osx" ? qsTr("This enables the capture of system-wide keyboard shortcuts like ⌘+Tab and Option+Tab that would normally be handled by macOS while streaming.") : qsTr("This enables the capture of system-wide keyboard shortcuts like Alt+Tab that would normally be handled by the client OS while streaming.")) + "\n\n" +
+                                      (Qt.platform.os === "osx" ? qsTr("macOS reserves some system shortcuts, so they may remain unavailable to the streaming client.") : qsTr("NOTE: Certain keyboard shortcuts like Ctrl+Alt+Del on Windows cannot be intercepted by any application, including Moonlight."))
                     }
 
                     AutoResizingComboBox {
@@ -2183,7 +2183,7 @@ Flickable {
                     ToolTip.timeout: 5000
                     ToolTip.visible: hovered
                     ToolTip.text: qsTr("Display real-time stream performance information while streaming.") + "\n\n" +
-                                  qsTr("You can toggle it at any time while streaming using Ctrl+Alt+Shift+S or Select+L1+R1+X.") + "\n\n" +
+                                  (Qt.platform.os === "osx" ? qsTr("You can toggle it at any time while streaming using ⌘+Option+Shift+S or Select+L1+R1+X.") : qsTr("You can toggle it at any time while streaming using Ctrl+Alt+Shift+S or Select+L1+R1+X.")) + "\n\n" +
                                   qsTr("The performance overlay is not supported on Steam Link or Raspberry Pi.")
                 }
             }
