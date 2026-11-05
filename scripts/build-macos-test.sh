@@ -7,7 +7,7 @@ subprocess.run(sys.argv[2:], check=True, timeout=int(sys.argv[1]))
 PYTHON
 }
 
-# Native arm64 test build. Requires Qt 6.8.3, Homebrew FFmpeg/SDL2/Opus/OpenSSL.
+# Native arm64 test build. Requires Qt 6.8.3, Homebrew FFmpeg/SDL2/SDL3/Opus/OpenSSL.
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$repo_root"
 test "$(uname -s)" = Darwin
@@ -33,6 +33,13 @@ app="$PWD/app/Eclipse.app"
 # Homebrew runtime library so the app is self-contained.
 frameworks="$app/Contents/Frameworks"
 mkdir -p "$frameworks"
+# SDL3 is loaded dynamically by the macOS SDL integration, so macdeployqt
+# cannot discover it from the executable's ordinary linked-library table.
+# Bundle the matching native Homebrew runtime explicitly.
+sdl3_dylib="$(brew --prefix sdl3)/lib/libSDL3.dylib"
+test -f "$sdl3_dylib"
+cp -L "$sdl3_dylib" "$frameworks/libSDL3.dylib"
+install_name_tool -id "@rpath/libSDL3.dylib" "$frameworks/libSDL3.dylib"
 brotli_common="$(brew --prefix brotli)/lib/libbrotlicommon.1.dylib"
 test -f "$brotli_common"
 cp -L "$brotli_common" "$frameworks/libbrotlicommon.1.dylib"
@@ -57,6 +64,10 @@ run_bounded 600 macdeployqt "$app" -qmldir="$source_root/app/gui" -always-overwr
 find "$app/Contents/PlugIns/sqldrivers" -type f -name '*.dylib' ! -name 'libqsqlite.dylib' -delete
 run_bounded 120 python3 "$repo_root/scripts/fix-macos-library-paths.py" "$app"
 run_bounded 300 python3 "$repo_root/scripts/verify-macos-bundle.py" "$app"
+# Explicitly load SDL3 through dyld, then launch the real GUI app and
+# require it to remain alive past startup (unlike the --version smoke test).
+run_bounded 30 python3 "$repo_root/scripts/test-macos-sdl3-load.py" "$frameworks/libSDL3.dylib"
+run_bounded 45 python3 "$repo_root/scripts/test-macos-gui-launch.py" "$app"
 run_bounded 180 codesign --force --deep --sign - "$app"
 run_bounded 120 codesign --verify --deep --strict --verbose=2 "$app"
 mkdir -p "$repo_root/macos-work/deliverables" "$repo_root/macos-work/dmg"
