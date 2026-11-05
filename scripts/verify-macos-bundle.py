@@ -9,6 +9,13 @@ plist = plistlib.loads((app / 'Contents/Info.plist').read_bytes())
 assert plist['CFBundleIdentifier'] == 'io.github.notadeveloper4665.Eclipse'
 assert plist['CFBundleExecutable'] == 'Eclipse'
 errors = []
+sdl3 = app / 'Contents/Frameworks/libSDL3.dylib'
+if not sdl3.is_file():
+    errors.append(f'Missing bundled SDL3 runtime: {sdl3}')
+else:
+    sdl3_id = subprocess.check_output(['otool', '-arch', 'arm64', '-D', str(sdl3)], text=True).splitlines()[1:]
+    if '@rpath/libSDL3.dylib' not in {line.strip() for line in sdl3_id}:
+        errors.append('SDL3 install name is not @rpath/libSDL3.dylib')
 count = 0
 for path in app.rglob('*'):
     if not path.is_file() or path.is_symlink():
