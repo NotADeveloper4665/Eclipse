@@ -196,11 +196,11 @@ void SdlInputHandler::handleKeyEvent(SDL_KeyboardEvent* event)
         return;
     }
 
-    // Check for our special key combos. macOS uses Command (GUI) + Option
-    // + Shift to avoid colliding with common system and application shortcuts.
+    // Special shortcuts use Command + Control + Shift on macOS. Option is
+    // intentionally not used because it participates in native macOS shortcuts.
 #ifdef Q_OS_MACOS
     const bool specialComboModifiers = (event->keysym.mod & KMOD_GUI) &&
-                                       (event->keysym.mod & KMOD_ALT) &&
+                                       (event->keysym.mod & KMOD_CTRL) &&
                                        (event->keysym.mod & KMOD_SHIFT);
 #else
     const bool specialComboModifiers = (event->keysym.mod & KMOD_CTRL) &&
