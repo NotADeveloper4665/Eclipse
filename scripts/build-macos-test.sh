@@ -18,6 +18,7 @@ mkdir -p macos-work/source macos-work/build
 unzip -q -o Eclipse-source.zip -d macos-work/source
 cp -a release-overlay/Eclipse/. macos-work/source/Eclipse/
 source_root="$repo_root/macos-work/source/Eclipse"
+grep -R -n -F "Failed loading SDL3 library" "$source_root" || true
 printf '%s\n' 0.5.8 > "$source_root/app/version.txt"
 # Use one consistent FFmpeg installation: upstream prebuilt archives do not
 # include libavformat, which Eclipse needs for stream recording.
@@ -40,6 +41,9 @@ sdl3_dylib="$(brew --prefix sdl3)/lib/libSDL3.dylib"
 test -f "$sdl3_dylib"
 cp -L "$sdl3_dylib" "$frameworks/libSDL3.dylib"
 install_name_tool -id "@rpath/libSDL3.dylib" "$frameworks/libSDL3.dylib"
+if ! otool -l "$app/Contents/MacOS/Eclipse" | grep -A2 LC_RPATH | grep -Fq '@executable_path/../Frameworks'; then
+  install_name_tool -add_rpath '@executable_path/../Frameworks' "$app/Contents/MacOS/Eclipse"
+fi
 brotli_common="$(brew --prefix brotli)/lib/libbrotlicommon.1.dylib"
 test -f "$brotli_common"
 cp -L "$brotli_common" "$frameworks/libbrotlicommon.1.dylib"
