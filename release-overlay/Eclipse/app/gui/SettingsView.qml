@@ -1653,7 +1653,7 @@ Flickable {
                     ToolTip.timeout: 10000
                     ToolTip.visible: hovered
                     ToolTip.text: qsTr("This enables seamless mouse control without capturing the client's mouse cursor. It is ideal for remote desktop usage but will not work in most games.") + " " +
-                                  (Qt.platform.os === "osx" ? qsTr("You can toggle this while streaming using ⌘+Option+Shift+M.") : qsTr("You can toggle this while streaming using Ctrl+Alt+Shift+M.")) + "\n\n" +
+                                  (Qt.platform.os === "osx" ? qsTr("You can toggle this while streaming using ⌘+Control+Shift+M.") : qsTr("You can toggle this while streaming using Ctrl+Alt+Shift+M.")) + "\n\n" +
                                   qsTr("NOTE: Due to a bug in GeForce Experience, this option may not work properly if your host PC has multiple monitors.")
                 }
 
@@ -2183,7 +2183,7 @@ Flickable {
                     ToolTip.timeout: 5000
                     ToolTip.visible: hovered
                     ToolTip.text: qsTr("Display real-time stream performance information while streaming.") + "\n\n" +
-                                  (Qt.platform.os === "osx" ? qsTr("You can toggle it at any time while streaming using ⌘+Option+Shift+S or Select+L1+R1+X.") : qsTr("You can toggle it at any time while streaming using Ctrl+Alt+Shift+S or Select+L1+R1+X.")) + "\n\n" +
+                                  (Qt.platform.os === "osx" ? qsTr("You can toggle it at any time while streaming using ⌘+Control+Shift+S or Select+L1+R1+X.") : qsTr("You can toggle it at any time while streaming using Ctrl+Alt+Shift+S or Select+L1+R1+X.")) + "\n\n" +
                                   qsTr("The performance overlay is not supported on Steam Link or Raspberry Pi.")
                 }
             }
