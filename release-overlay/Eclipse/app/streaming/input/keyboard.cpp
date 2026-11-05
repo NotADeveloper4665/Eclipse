@@ -196,11 +196,18 @@ void SdlInputHandler::handleKeyEvent(SDL_KeyboardEvent* event)
         return;
     }
 
-    // Check for our special key combos
-    if ((event->state == SDL_PRESSED) &&
-            (event->keysym.mod & KMOD_CTRL) &&
-            (event->keysym.mod & KMOD_ALT) &&
-            (event->keysym.mod & KMOD_SHIFT)) {
+    // Check for our special key combos. macOS uses Command (GUI) + Option
+    // + Shift to avoid colliding with common system and application shortcuts.
+#ifdef Q_OS_MACOS
+    const bool specialComboModifiers = (event->keysym.mod & KMOD_GUI) &&
+                                       (event->keysym.mod & KMOD_ALT) &&
+                                       (event->keysym.mod & KMOD_SHIFT);
+#else
+    const bool specialComboModifiers = (event->keysym.mod & KMOD_CTRL) &&
+                                       (event->keysym.mod & KMOD_ALT) &&
+                                       (event->keysym.mod & KMOD_SHIFT);
+#endif
+    if ((event->state == SDL_PRESSED) && specialComboModifiers) {
         // First we test the SDLK combos for matches,
         // that way we ensure that latin keyboard users
         // can match to the key they see on their keyboards.
