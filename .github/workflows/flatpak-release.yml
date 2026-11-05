@@ -1,7 +1,7 @@
 name: Build and publish Flatpak
 on:
   push:
-    branches: [main]
+    branches: [main, feature/unified-material-ui]
   workflow_dispatch:
   release:
     types: [published]

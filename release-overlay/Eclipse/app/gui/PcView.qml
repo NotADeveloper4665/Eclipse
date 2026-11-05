@@ -1,5 +1,6 @@
 import QtQuick 2.9
 import QtQuick.Controls 2.2
+import QtQuick.Window 2.2
 import QtQuick.Layouts 1.3
 
 import ComputerModel 1.0
@@ -99,7 +100,7 @@ CenteredGridView {
             elide: Label.ElideRight
             text: StreamingPreferences.enableMdns ? qsTr("Searching for compatible hosts on your local network...")
                                                   : qsTr("Automatic PC discovery is disabled. Add your PC manually.")
-            font.pointSize: 20
+            font.pointSize: 16
             verticalAlignment: Text.AlignVCenter
             wrapMode: Text.Wrap
         }
@@ -110,6 +111,16 @@ CenteredGridView {
     delegate: NavigableItemDelegate {
         width: 300; height: 320;
         grid: pcGrid
+
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: 8
+            radius: 16
+            color: Window.window.useDarkPalette ? Window.window.eclipseTheme.darkSurfaceContainer : Window.window.eclipseTheme.lightSurfaceContainerLow
+            border.width: parent.activeFocus ? 2 : (parent.hovered ? 1 : 0)
+            border.color: parent.activeFocus ? (Window.window.useDarkPalette ? Window.window.eclipseTheme.darkPrimary : Window.window.eclipseTheme.lightPrimary) :
+                          (Window.window.useDarkPalette ? Window.window.eclipseTheme.darkOutlineVariant : Window.window.eclipseTheme.lightOutlineVariant)
+        }
 
         property alias pcContextMenu : pcContextMenuLoader.item
 
@@ -155,7 +166,8 @@ CenteredGridView {
             width: parent.width
             anchors.top: pcIcon.bottom
             anchors.bottom: parent.bottom
-            font.pointSize: 36
+            font.pointSize: 16
+            font.weight: Font.Medium
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap
             elide: Text.ElideRight

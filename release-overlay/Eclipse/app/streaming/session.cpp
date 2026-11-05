@@ -5,6 +5,7 @@
 #include "controlcenter.h"
 #include <QSet>
 #include <SDL_vulkan.h>
+#include <SDL_syswm.h>
 #include "settings/streamingpreferences.h"
 #include "streaming/streamutils.h"
 #include "backend/richpresencemanager.h"
@@ -48,9 +49,19 @@
 #include <QGuiApplication>
 #include <QCursor>
 #include <QScreen>
+#include <QPixmap>
 #include <QDir>
 #include <QDateTime>
 #include <QStandardPaths>
+
+// X11 headers define None as a macro, which collides with the decoder enum.
+#ifdef None
+#undef None
+#endif
+#include <QFile>
+#include <QTemporaryFile>
+#include <QUrl>
+#include <QTimer>
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 #include <QQuickOpenGLUtils>
@@ -1904,6 +1915,139 @@ void Session::start()
     thread->start();
 }
 
+
+QString Session::captureReconnectSnapshot()
+{
+    if (m_Window == nullptr) {
+        return QString();
+    }
+
+    int windowX = 0, windowY = 0, windowWidth = 0, windowHeight = 0;
+    SDL_GetWindowPosition(m_Window, &windowX, &windowY);
+    SDL_GetWindowSize(m_Window, &windowWidth, &windowHeight);
+
+    QScreen* screen = m_QtWindow != nullptr ? m_QtWindow->screen() : QGuiApplication::primaryScreen();
+    if (windowWidth > 0 && windowHeight > 0) {
+        const QRect windowRect(windowX, windowY, windowWidth, windowHeight);
+        for (QScreen* candidate : QGuiApplication::screens()) {
+            if (candidate != nullptr && candidate->geometry().intersects(windowRect)) {
+                screen = candidate;
+                break;
+            }
+        }
+    }
+    if (screen == nullptr) {
+        return QString();
+    }
+
+    // Prefer the SDL window's native ID so unrelated windows are not included.
+    WId nativeWindow = 0;
+    SDL_SysWMinfo wmInfo = {};
+    SDL_VERSION(&wmInfo.version);
+    if (SDL_GetWindowWMInfo(m_Window, &wmInfo)) {
+#ifdef Q_OS_WIN32
+        if (wmInfo.subsystem == SDL_SYSWM_WINDOWS) {
+            nativeWindow = reinterpret_cast<WId>(wmInfo.info.win.window);
+        }
+#elif defined(Q_OS_LINUX)
+#if defined(SDL_VIDEO_DRIVER_X11)
+        if (wmInfo.subsystem == SDL_SYSWM_X11) {
+            nativeWindow = static_cast<WId>(wmInfo.info.x11.window);
+        }
+#endif
+#if defined(SDL_VIDEO_DRIVER_WAYLAND)
+        if (nativeWindow == 0 && wmInfo.subsystem == SDL_SYSWM_WAYLAND) {
+            nativeWindow = reinterpret_cast<WId>(wmInfo.info.wl.surface);
+        }
+#endif
+#endif
+    }
+
+    QPixmap captured;
+    if (nativeWindow != 0) {
+        captured = screen->grabWindow(nativeWindow);
+    }
+
+    // macOS and some Wayland compositors don't expose a grab-able foreign
+    // window ID. Fall back to the SDL window rectangle on its display. If the
+    // compositor blocks capture, QML still shows the reconnect status surface.
+    if (captured.isNull()) {
+        const int x = windowX;
+        const int y = windowY;
+        const int width = windowWidth;
+        const int height = windowHeight;
+        if (width > 0 && height > 0) {
+            QPixmap desktop = screen->grabWindow(0);
+            if (!desktop.isNull()) {
+                const qreal ratio = desktop.devicePixelRatio();
+                const QRect screenGeometry = screen->geometry();
+                const QRect crop(qRound((x - screenGeometry.x()) * ratio),
+                                 qRound((y - screenGeometry.y()) * ratio),
+                                 qRound(width * ratio),
+                                 qRound(height * ratio));
+                const QRect bounded = crop.intersected(desktop.rect());
+                if (!bounded.isEmpty()) {
+                    captured = desktop.copy(bounded);
+                }
+            }
+        }
+    }
+
+    if (captured.isNull()) {
+        return QString();
+    }
+
+    QImage frame = captured.toImage().convertToFormat(QImage::Format_ARGB32);
+    if (frame.isNull()) {
+        return QString();
+    }
+
+    // Downsample and upscale for a cheap, stable blur without a
+    // platform-specific GPU post-processing path.
+    const QSize blurSize(qMax(1, frame.width() / 18), qMax(1, frame.height() / 18));
+    QImage blurred = frame.scaled(blurSize, Qt::IgnoreAspectRatio, Qt::SmoothTransformation)
+                          .scaled(frame.size(), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+    {
+        QPainter painter(&blurred);
+        painter.fillRect(blurred.rect(), QColor(13, 16, 27, 92));
+    }
+
+    QTemporaryFile snapshotFile(QDir::tempPath() + QStringLiteral("/eclipse-reconnect-XXXXXX.png"));
+    snapshotFile.setAutoRemove(false);
+    if (!snapshotFile.open()) {
+        return QString();
+    }
+    const QString fileName = snapshotFile.fileName();
+    snapshotFile.close();
+
+    if (!blurred.save(fileName, "PNG")) {
+        QFile::remove(fileName);
+        return QString();
+    }
+
+    // QML removes the frame as soon as the replacement session is live.
+    // This timer also cleans it up when reconnect fails or the client exits.
+    QTimer::singleShot(60000, QCoreApplication::instance(), [fileName]() {
+        QFile::remove(fileName);
+    });
+
+    return QUrl::fromLocalFile(fileName).toString();
+}
+
+void Session::clearReconnectSnapshotFile(const QString& url) const
+{
+    const QUrl snapshotUrl(url);
+    if (!snapshotUrl.isLocalFile()) {
+        return;
+    }
+
+    const QString path = QDir::cleanPath(snapshotUrl.toLocalFile());
+    const QString allowedPrefix = QDir::cleanPath(QDir::tempPath() + QStringLiteral("/eclipse-reconnect-"));
+    if (path.startsWith(allowedPrefix)) {
+        QFile::remove(path);
+    }
+}
+
 void Session::interrupt()
 {
     // Stop any connection in progress
@@ -2233,8 +2377,17 @@ void Session::exec()
             m_Preferences->save();
             break;
         case ControlCenter::Restart:
-            m_ReconnectRequested = true; m_KeepHostAppRunning = true;
-            emit reconnectRequestedChanged(); interrupt(); break;
+            // Close the control-center plane before capturing the displayed frame.
+            // The blurred snapshot bridges the time while the replacement session starts.
+            setControlOpen(false);
+            SDL_Delay(34);
+            m_ReconnectSnapshotUrl = captureReconnectSnapshot();
+            emit reconnectSnapshotChanged();
+            m_ReconnectRequested = true;
+            m_KeepHostAppRunning = true;
+            emit reconnectRequestedChanged();
+            interrupt();
+            break;
         case ControlCenter::Disconnect: m_KeepHostAppRunning = true; interrupt(); break;
         case ControlCenter::SecureAttention:
             if (m_Preferences->guestAllowKeyboard && !m_Preferences->viewOnlyMode) {

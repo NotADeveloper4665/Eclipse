@@ -1,6 +1,7 @@
 #include <QGuiApplication>
 #include <QStyleHints>
 #include <QQmlApplicationEngine>
+#include <QQmlComponent>
 #include <QQmlContext>
 #include <QIcon>
 #include <QQuickStyle>
@@ -980,24 +981,12 @@ int main(int argc, char *argv[])
     // Create the identity manager on the main thread
     IdentityManager::get();
 
-    // We require the Material theme
+    // Require the Material style, but let the persisted QML appearance selector
+    // control System, Light, and Dark. The previous forced-dark / Dense defaults
+    // overrode the new semantic palette and made the UI inconsistent.
     QQuickStyle::setStyle("Material");
-
-    // Our icons are styled for a dark theme, so we do not allow the user to override this
-    qputenv("QT_QUICK_CONTROLS_MATERIAL_THEME", "Dark");
-
-    // These are defaults that we allow the user to override
-    if (!qEnvironmentVariableIsSet("QT_QUICK_CONTROLS_MATERIAL_ACCENT")) {
-        qputenv("QT_QUICK_CONTROLS_MATERIAL_ACCENT", "Purple");
-    }
     if (!qEnvironmentVariableIsSet("QT_QUICK_CONTROLS_MATERIAL_VARIANT")) {
-        qputenv("QT_QUICK_CONTROLS_MATERIAL_VARIANT", "Dense");
-    }
-    if (!qEnvironmentVariableIsSet("QT_QUICK_CONTROLS_MATERIAL_PRIMARY")) {
-        // Qt 6.9 began to use a different shade of Material.Indigo when we use a dark theme
-        // (which is all the time). The new color looks washed out, so manually specify the
-        // old primary color unless the user overrides it themselves.
-        qputenv("QT_QUICK_CONTROLS_MATERIAL_PRIMARY", "#3F51B5");
+        qputenv("QT_QUICK_CONTROLS_MATERIAL_VARIANT", "Normal");
     }
 
     QQmlApplicationEngine engine;
@@ -1073,18 +1062,127 @@ int main(int argc, char *argv[])
         engine.rootContext()->setContextProperty("initialView", initialView);
         engine.rootContext()->setContextProperty("runConfigChecks", commandLineParserResult == GlobalCommandLineParser::NormalStartRequested);
 
+#ifdef ECLIPSE_UI_TEST
+        QObject::connect(&engine, &QQmlApplicationEngine::warnings, &engine,
+                         [](const QList<QQmlError>& warnings) {
+            for (const QQmlError& warning : warnings)
+                qCritical().noquote() << warning.toString();
+        });
+#endif
         // Load the main.qml file
         engine.load(QUrl(QStringLiteral("qrc:/gui/main.qml")));
-        if (engine.rootObjects().isEmpty())
+        if (engine.rootObjects().isEmpty()) {
+#ifdef ECLIPSE_UI_TEST
+            qFatal("Eclipse UI test could not create the main QML root (%s)",
+                   qPrintable(initialView));
+#else
             return -1;
+#endif
+        }
 #ifdef ECLIPSE_UI_TEST
         QObject* root = engine.rootObjects().first();
+        QQmlComponent reconnectOverlayComponent(&engine, QUrl(QStringLiteral("qrc:/gui/ReconnectOverlay.qml")));
+        if (reconnectOverlayComponent.isError())
+            qFatal("Reconnect overlay failed to load: %s", qPrintable(reconnectOverlayComponent.errorString()));
+        QObject* reconnectOverlay = reconnectOverlayComponent.create();
+        if (!reconnectOverlay) qFatal("Reconnect overlay could not be instantiated");
+        reconnectOverlay->setProperty("reconnecting", true);
+        QObject* reconnectStatus = reconnectOverlay->findChild<QObject*>("reconnectStatusText");
+        if (!reconnectOverlay->property("visible").toBool())
+            qFatal("Reconnecting overlay did not become visible");
+        if (!reconnectStatus || reconnectStatus->property("text").toString() != QStringLiteral("Reconnecting"))
+            qFatal("Reconnect status text did not render");
+        delete reconnectOverlay;
+
         QTimer::singleShot(0, &engine, [root] {
             if (!QMetaObject::invokeMethod(root, "openSettingsView")) qFatal("Settings route did not execute");
         });
         QTimer::singleShot(1000, &engine, [&app, &engine, root] {
             const auto pages = root->findChildren<QObject*>(QObject::tr("Settings"));
             if (pages.size() != 1) qFatal("Settings page failed to instantiate");
+            QObject* appearanceSelector = root->findChild<QObject*>("appearanceThemeSelector");
+            if (!appearanceSelector) qFatal("Material appearance selector did not instantiate");
+            const int originalTheme = root->property("appearanceTheme").toInt();
+            appearanceSelector->setProperty("currentIndex", 2);
+            if (!QMetaObject::invokeMethod(appearanceSelector, "activated", Q_ARG(int, 2)) ||
+                root->property("appearanceTheme").toInt() != 2)
+                qFatal("Dark appearance selection did not reach the application theme");
+            // Verify that selecting either explicit palette changes the real root theme.
+            appearanceSelector->setProperty("currentIndex", 1);
+            if (!QMetaObject::invokeMethod(appearanceSelector, "activated", Q_ARG(int, 1)) ||
+                root->property("appearanceTheme").toInt() != 1 || root->property("useDarkPalette").toBool())
+                qFatal("Light appearance did not activate the light semantic palette");
+            appearanceSelector->setProperty("currentIndex", 2);
+            if (!QMetaObject::invokeMethod(appearanceSelector, "activated", Q_ARG(int, 2)) ||
+                root->property("appearanceTheme").toInt() != 2 || !root->property("useDarkPalette").toBool())
+                qFatal("Dark appearance did not activate the dark semantic palette");
+            appearanceSelector->setProperty("currentIndex", originalTheme);
+            if (!QMetaObject::invokeMethod(appearanceSelector, "activated", Q_ARG(int, originalTheme)) ||
+                root->property("appearanceTheme").toInt() != originalTheme)
+                qFatal("Appearance selector could not restore its original value");
+
+            auto* preferences = StreamingPreferences::get();
+            auto* transportSelector = root->findChild<QObject*>("quicTransportSelector");
+            auto* wanToggle = root->findChild<QObject*>("wanOptimizationToggle");
+            auto* adaptiveToggle = root->findChild<QObject*>("adaptiveBitrateToggle");
+            auto* latencySlider = root->findChild<QObject*>("minimumLatencySlider");
+            auto* viewOnlyToggle = root->findChild<QObject*>("viewOnlyModeToggle");
+            auto* keyboardToggle = root->findChild<QObject*>("guestKeyboardToggle");
+            auto* pointerToggle = root->findChild<QObject*>("guestPointerToggle");
+            auto* gamepadToggle = root->findChild<QObject*>("guestGamepadToggle");
+            if (!transportSelector || !wanToggle || !adaptiveToggle || !latencySlider ||
+                !viewOnlyToggle || !keyboardToggle || !pointerToggle || !gamepadToggle)
+                qFatal("A network, latency, or guest-input setting control did not instantiate");
+
+            const int savedTransport = preferences->transportMode;
+            const int testTransport = savedTransport == 2 ? 0 : 2;
+            transportSelector->setProperty("currentIndex", testTransport);
+            if (!QMetaObject::invokeMethod(transportSelector, "activated", Q_ARG(int, testTransport)) ||
+                preferences->transportMode != testTransport)
+                qFatal("Transport selection is not wired to StreamingPreferences");
+            transportSelector->setProperty("currentIndex", savedTransport);
+            QMetaObject::invokeMethod(transportSelector, "activated", Q_ARG(int, savedTransport));
+
+            const bool savedWan = preferences->wanOptimization;
+            wanToggle->setProperty("checked", !savedWan);
+            if (!QMetaObject::invokeMethod(wanToggle, "toggled") ||
+                preferences->wanOptimization != !savedWan)
+                qFatal("WAN optimization toggle is not wired to StreamingPreferences");
+            wanToggle->setProperty("checked", savedWan);
+            QMetaObject::invokeMethod(wanToggle, "toggled");
+
+            const bool savedAdaptive = preferences->dynamicAdaptiveBitrate;
+            adaptiveToggle->setProperty("checked", !savedAdaptive);
+            if (preferences->dynamicAdaptiveBitrate != !savedAdaptive)
+                qFatal("Adaptive bitrate toggle is not wired to StreamingPreferences");
+            adaptiveToggle->setProperty("checked", savedAdaptive);
+
+            const int savedLatency = preferences->minimumLatency;
+            const int testLatency = savedLatency == 17 ? 18 : 17;
+            latencySlider->setProperty("value", testLatency);
+            if (preferences->minimumLatency != testLatency)
+                qFatal("Minimum-latency slider is not wired to StreamingPreferences");
+            latencySlider->setProperty("value", savedLatency);
+
+            const bool savedViewOnly = preferences->viewOnlyMode;
+            const bool savedKeyboard = preferences->guestAllowKeyboard;
+            const bool savedPointer = preferences->guestAllowPointer;
+            const bool savedGamepad = preferences->guestAllowGamepad;
+            viewOnlyToggle->setProperty("checked", !savedViewOnly);
+            keyboardToggle->setProperty("checked", !savedKeyboard);
+            pointerToggle->setProperty("checked", !savedPointer);
+            gamepadToggle->setProperty("checked", !savedGamepad);
+            if (preferences->viewOnlyMode != !savedViewOnly ||
+                preferences->guestAllowKeyboard != !savedKeyboard ||
+                preferences->guestAllowPointer != !savedPointer ||
+                preferences->guestAllowGamepad != !savedGamepad)
+                qFatal("Guest-input permission controls are not wired to StreamingPreferences");
+            viewOnlyToggle->setProperty("checked", savedViewOnly);
+            keyboardToggle->setProperty("checked", savedKeyboard);
+            pointerToggle->setProperty("checked", savedPointer);
+            gamepadToggle->setProperty("checked", savedGamepad);
+            preferences->save();
+
             QObject* selector = root->findChild<QObject*>("fsrPresetSelector");
             if (!selector) qFatal("FSR selector did not instantiate");
             selector->setProperty("currentIndex", 3);

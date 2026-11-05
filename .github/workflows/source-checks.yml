@@ -21,14 +21,14 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential unzip qtbase5-dev qtdeclarative5-dev libqt5svg5-dev qtquickcontrols2-5-dev \
-            qml-module-qtquick2 qml-module-qtquick-controls2 qml-module-qtquick-layouts qml-module-qtquick-window2 qml-module-qtgraphicaleffects \
+            qml-module-qtquick2 qml-module-qtquick-controls2 qml-module-qtquick-layouts qml-module-qtquick-window2 qml-module-qtgraphicaleffects qml-module-qt-labs-settings \
             libssl-dev libsdl2-dev libsdl2-ttf-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libva-dev libvdpau-dev libopus-dev \
             libpulse-dev libasound2-dev libdrm-dev libegl1-mesa-dev libwayland-dev libplacebo-dev libvulkan-dev mesa-vulkan-drivers ffmpeg
       - name: Assemble complete source and parse QML
         run: |
           unzip -q Eclipse-source.zip -d source
           cp -a release-overlay/Eclipse/. source/Eclipse/
-          qmllint source/Eclipse/app/gui/main.qml source/Eclipse/app/gui/PcView.qml source/Eclipse/app/gui/SettingsView.qml source/Eclipse/app/gui/DeviceForwarding.qml source/Eclipse/app/gui/MediaForwarding.qml
+          qmllint source/Eclipse/app/gui/main.qml source/Eclipse/app/gui/PcView.qml source/Eclipse/app/gui/AppView.qml source/Eclipse/app/gui/SettingsView.qml source/Eclipse/app/gui/StreamSegue.qml source/Eclipse/app/gui/ReconnectOverlay.qml source/Eclipse/app/gui/EclipseTheme.qml source/Eclipse/app/gui/EclipseSettingsSection.qml source/Eclipse/app/gui/DeviceForwarding.qml source/Eclipse/app/gui/MediaForwarding.qml
           if grep -R -n -E '^\[.*truncat|^Warning: truncated output|^Total output lines:' --include='*.cpp' --include='*.h' --include='*.qml' source/Eclipse/app; then exit 1; fi
       - name: Syzygy passkey and transcript checks
         run: |
@@ -52,8 +52,15 @@ jobs:
           touch ../../source/Eclipse/app/main.cpp
           make -j2
           export XDG_CONFIG_HOME="$(mktemp -d)"
+          set +e
           timeout 60s ./moonlight > ui-test.log 2>&1
+          ui_test_status=$?
+          set -e
           cat ui-test.log
+          if [ "$ui_test_status" -ne 0 ]; then
+            echo "Eclipse UI runtime test exited with status $ui_test_status" >&2
+            exit "$ui_test_status"
+          fi
           grep -F 'Eclipse settings runtime test passed' ui-test.log
       - name: Control-center and forwarding lifecycle checks
         env:

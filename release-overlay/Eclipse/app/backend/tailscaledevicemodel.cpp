@@ -107,9 +107,21 @@ void TailscaleDeviceModel::refresh()
 #endif
     );
 #ifdef Q_OS_MACOS
+    // GUI-launched macOS apps inherit a reduced PATH. Check the common
+    // standalone/Homebrew CLI locations before using the bundled app CLI.
     if (program.isEmpty()) {
-        const QString appCli = QStringLiteral("/Applications/Tailscale.app/Contents/MacOS/Tailscale");
-        if (QFileInfo::exists(appCli)) program = appCli;
+        const QStringList candidates = {
+            QStringLiteral("/usr/local/bin/tailscale"),
+            QStringLiteral("/opt/homebrew/bin/tailscale"),
+            QStringLiteral("/Applications/Tailscale.app/Contents/MacOS/Tailscale")
+        };
+        for (const QString& candidate : candidates) {
+            const QFileInfo info(candidate);
+            if (info.isFile() && info.isExecutable()) {
+                program = candidate;
+                break;
+            }
+        }
     }
 #endif
     if (program.isEmpty()) {
@@ -125,6 +137,14 @@ void TailscaleDeviceModel::refresh()
     setLoading(true);
     m_Process.setProgram(program);
     m_Process.setArguments({QStringLiteral("status"), QStringLiteral("--json")});
+#ifdef Q_OS_MACOS
+    // The bundled macOS Tailscale executable doubles as the GUI launcher.
+    // Force CLI mode so a GUI-launched Eclipse process never opens/flickers
+    // the Tailscale menu-bar app during peer discovery.
+    QProcessEnvironment processEnvironment = QProcessEnvironment::systemEnvironment();
+    processEnvironment.insert(QStringLiteral("TAILSCALE_BE_CLI"), QStringLiteral("1"));
+    m_Process.setProcessEnvironment(processEnvironment);
+#endif
     m_Process.start();
     m_Timeout.start();
 }

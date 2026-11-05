@@ -100,16 +100,31 @@ Flickable {
         width: settingsPage.compactLayout ? settingsPage.width : settingsPage.width / 2
         spacing: 15
 
-        GroupBox {
+        EclipseSettingsSection {
             id: basicSettingsGroupBox
             width: (parent.width - (parent.leftPadding + parent.rightPadding))
             padding: 12
-            title: "<font color=\"skyblue\">" + qsTr("Basic Settings") + "</font>"
+            title: qsTr("Basic Settings")
             font.pointSize: 12
 
             Column {
                 anchors.fill: parent
                 spacing: 5
+
+                Label {
+                    width: parent.width
+                    text: qsTr("Appearance")
+                    font.pointSize: 12
+                }
+
+                ComboBox {
+                    id: appearanceThemeSelector
+                    objectName: "appearanceThemeSelector"
+                    width: parent.width
+                    model: [qsTr("System default"), qsTr("Light"), qsTr("Dark")]
+                    currentIndex: Window.window.appearanceTheme
+                    onActivated: Window.window.appearanceTheme = currentIndex
+                }
 
                 Label {
                     width: parent.width
@@ -871,12 +886,12 @@ Flickable {
 
                 }
 
-                GroupBox {
+                EclipseSettingsSection {
                     id: frameBufferingGroup
                     objectName: "frameBufferingGroup"
                     width: parent.width
                     padding: 12
-                    title: "<font color=\"skyblue\">" + qsTr("Frame buffering") + "</font>"
+                    title: qsTr("Frame buffering")
                     font.pointSize: 12
 
                     Column {
@@ -954,11 +969,11 @@ Flickable {
                                     :
                                       qsTr("HDR streaming is not supported on this PC.")
                 }
-                GroupBox {
+                EclipseSettingsSection {
                     id: clientScalingGroupBox
                     width: parent.width
                     padding: 12
-                    title: "<font color=\"skyblue\">" + qsTr("Client upscaling (FSR)") + "</font>"
+                    title: qsTr("Client upscaling (FSR)")
                     font.pointSize: 12
                     Column {
                         anchors.fill: parent
@@ -994,12 +1009,12 @@ Flickable {
                     }
                 }
 
-                GroupBox {
+                EclipseSettingsSection {
                     id: deviceForwardingGroup
                     property bool expanded: false
                     width: parent.width
                     padding: 12
-                    title: "<font color=\"skyblue\">" + qsTr("Microphone, camera, and USB forwarding") + "</font>"
+                    title: qsTr("Microphone, camera, and USB forwarding")
                     font.pointSize: 12
                     Column {
                         anchors.fill: parent
@@ -1065,11 +1080,11 @@ Flickable {
             }
         }
 
-        GroupBox {
+        EclipseSettingsSection {
             id: streamingAutomationGroupBox
             width: (parent.width - (parent.leftPadding + parent.rightPadding))
             padding: 12
-            title: "<font color=\"skyblue\">" + qsTr("Streaming") + "</font>"
+            title: qsTr("Streaming")
             font.pointSize: 12
 
             Column {
@@ -1077,6 +1092,8 @@ Flickable {
                 spacing: 5
 
                 CheckBox {
+                    id: wanOptimizationToggle
+                    objectName: "wanOptimizationToggle"
                     text: qsTr("WAN / 5G Optimization")
                     checked: StreamingPreferences.wanOptimization
                     onToggled: StreamingPreferences.wanOptimization = checked
@@ -1096,6 +1113,8 @@ Flickable {
                 }
                 Label { text: qsTr("Network transport (experimental QUIC)") }
                 ComboBox {
+                    id: quicTransportSelector
+                    objectName: "quicTransportSelector"
                     width: parent.width
                     model: [qsTr("Automatic — prefer QUIC"), qsTr("Force QUIC"), qsTr("GameStream")]
                     currentIndex: StreamingPreferences.transportMode
@@ -1108,6 +1127,8 @@ Flickable {
                 }
 
                 CheckBox {
+                    id: adaptiveBitrateToggle
+                    objectName: "adaptiveBitrateToggle"
                     width: parent.width
                     text: qsTr("Adjust bitrate automatically")
                     font.pointSize: 12
@@ -1127,6 +1148,8 @@ Flickable {
                 }
 
                 AutoResizingComboBox {
+                    id: adaptiveBitrateModeSelector
+                    objectName: "adaptiveBitrateModeSelector"
                     width: parent.width
                     enabled: StreamingPreferences.dynamicAdaptiveBitrate
                     textRole: "text"
@@ -1149,12 +1172,12 @@ Flickable {
             }
         }
 
-        GroupBox {
+        EclipseSettingsSection {
 
             id: audioSettingsGroupBox
             width: (parent.width - (parent.leftPadding + parent.rightPadding))
             padding: 12
-            title: "<font color=\"skyblue\">" + qsTr("Audio Settings") + "</font>"
+            title: qsTr("Audio Settings")
             font.pointSize: 12
 
             Column {
@@ -1243,11 +1266,11 @@ Flickable {
             }
         }
 
-        GroupBox {
+        EclipseSettingsSection {
             id: hostSettingsGroupBox
             width: (parent.width - (parent.leftPadding + parent.rightPadding))
             padding: 12
-            title: "<font color=\"skyblue\">" + qsTr("Host") + "</font>"
+            title: qsTr("Host")
             font.pointSize: 12
 
             Column {
@@ -1294,11 +1317,11 @@ Flickable {
             }
         }
 
-        GroupBox {
+        EclipseSettingsSection {
             id: uiSettingsGroupBox
             width: (parent.width - (parent.leftPadding + parent.rightPadding))
             padding: 12
-            title: "<font color=\"skyblue\">" + qsTr("UI Settings") + "</font>"
+            title: qsTr("UI Settings")
             font.pointSize: 12
 
             Column {
@@ -1604,11 +1627,11 @@ Flickable {
         width: settingsPage.compactLayout ? settingsPage.width : settingsPage.width / 2
         spacing: 15
 
-        GroupBox {
+        EclipseSettingsSection {
             id: inputSettingsGroupBox
             width: (parent.width - (parent.leftPadding + parent.rightPadding))
             padding: 12
-            title: "<font color=\"skyblue\">" + qsTr("Input Settings") + "</font>"
+            title: qsTr("Input Settings")
             font.pointSize: 12
 
             Column {
@@ -1630,7 +1653,7 @@ Flickable {
                     ToolTip.timeout: 10000
                     ToolTip.visible: hovered
                     ToolTip.text: qsTr("This enables seamless mouse control without capturing the client's mouse cursor. It is ideal for remote desktop usage but will not work in most games.") + " " +
-                                  qsTr("You can toggle this while streaming using Ctrl+Alt+Shift+M.") + "\n\n" +
+                                  (Qt.platform.os === "osx" ? qsTr("You can toggle this while streaming using ⌘+Control+Shift+M.") : qsTr("You can toggle this while streaming using Ctrl+Alt+Shift+M.")) + "\n\n" +
                                   qsTr("NOTE: Due to a bug in GeForce Experience, this option may not work properly if your host PC has multiple monitors.")
                 }
 
@@ -1649,8 +1672,8 @@ Flickable {
                         ToolTip.delay: 1000
                         ToolTip.timeout: 10000
                         ToolTip.visible: hovered
-                        ToolTip.text: qsTr("This enables the capture of system-wide keyboard shortcuts like Alt+Tab that would normally be handled by the client OS while streaming.") + "\n\n" +
-                                      qsTr("NOTE: Certain keyboard shortcuts like Ctrl+Alt+Del on Windows cannot be intercepted by any application, including Moonlight.")
+                        ToolTip.text: (Qt.platform.os === "osx" ? qsTr("This enables the capture of system-wide keyboard shortcuts like ⌘+Tab and Option+Tab that would normally be handled by macOS while streaming.") : qsTr("This enables the capture of system-wide keyboard shortcuts like Alt+Tab that would normally be handled by the client OS while streaming.")) + "\n\n" +
+                                      (Qt.platform.os === "osx" ? qsTr("macOS reserves some system shortcuts, so they may remain unavailable to the streaming client.") : qsTr("NOTE: Certain keyboard shortcuts like Ctrl+Alt+Del on Windows cannot be intercepted by any application, including Moonlight."))
                     }
 
                     AutoResizingComboBox {
@@ -1752,11 +1775,11 @@ Flickable {
             }
         }
 
-        GroupBox {
+        EclipseSettingsSection {
             id: gamepadSettingsGroupBox
             width: (parent.width - (parent.leftPadding + parent.rightPadding))
             padding: 12
-            title: "<font color=\"skyblue\">" + qsTr("Gamepad Settings") + "</font>"
+            title: qsTr("Gamepad Settings")
             font.pointSize: 12
 
             Column {
@@ -1827,11 +1850,11 @@ Flickable {
             }
         }
 
-        GroupBox {
+        EclipseSettingsSection {
             id: guestPermissionsGroupBox
             width: (parent.width - (parent.leftPadding + parent.rightPadding))
             padding: 12
-            title: "<font color=\"skyblue\">" + qsTr("Guest Input Permissions") + "</font>"
+            title: qsTr("Guest Input Permissions")
             font.pointSize: 12
 
             Column {
@@ -1846,6 +1869,7 @@ Flickable {
                 }
 
                 CheckBox {
+                    objectName: "viewOnlyModeToggle"
                     width: parent.width
                     text: qsTr("View-only mode (block all input)")
                     font.pointSize: 12
@@ -1854,6 +1878,7 @@ Flickable {
                 }
 
                 CheckBox {
+                    objectName: "guestKeyboardToggle"
                     width: parent.width
                     text: qsTr("Allow keyboard input")
                     font.pointSize: 12
@@ -1863,6 +1888,7 @@ Flickable {
                 }
 
                 CheckBox {
+                    objectName: "guestPointerToggle"
                     width: parent.width
                     text: qsTr("Allow mouse and touch input")
                     font.pointSize: 12
@@ -1872,6 +1898,7 @@ Flickable {
                 }
 
                 CheckBox {
+                    objectName: "guestGamepadToggle"
                     width: parent.width
                     text: qsTr("Allow controller input")
                     font.pointSize: 12
@@ -1889,11 +1916,11 @@ Flickable {
             }
         }
 
-        GroupBox {
+        EclipseSettingsSection {
             id: advancedSettingsGroupBox
             width: (parent.width - (parent.leftPadding + parent.rightPadding))
             padding: 12
-            title: "<font color=\"skyblue\">" + qsTr("Advanced Settings") + "</font>"
+            title: qsTr("Advanced Settings")
             font.pointSize: 12
 
             Column {
@@ -2156,7 +2183,7 @@ Flickable {
                     ToolTip.timeout: 5000
                     ToolTip.visible: hovered
                     ToolTip.text: qsTr("Display real-time stream performance information while streaming.") + "\n\n" +
-                                  qsTr("You can toggle it at any time while streaming using Ctrl+Alt+Shift+S or Select+L1+R1+X.") + "\n\n" +
+                                  (Qt.platform.os === "osx" ? qsTr("You can toggle it at any time while streaming using ⌘+Control+Shift+S or Select+L1+R1+X.") : qsTr("You can toggle it at any time while streaming using Ctrl+Alt+Shift+S or Select+L1+R1+X.")) + "\n\n" +
                                   qsTr("The performance overlay is not supported on Steam Link or Raspberry Pi.")
                 }
             }

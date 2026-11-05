@@ -3,6 +3,7 @@ import QtQuick.Controls 2.2
 import QtQuick.Layouts 1.3
 import QtQuick.Window 2.2
 import QtQuick.Controls.Material 2.2
+import Qt.labs.settings 1.1
 
 import ComputerManager 1.0
 import AutoUpdateChecker 1.0
@@ -22,14 +23,28 @@ ApplicationWindow {
     width: 1280
     height: 600
 
+    // Shared Material-inspired theme foundation with a persisted appearance selector.
+    EclipseTheme { id: themePalette }
+    property alias eclipseTheme: themePalette
+    Settings {
+        id: appearanceSettings
+        category: "appearance"
+        // 0 = System, 1 = Light, 2 = Dark
+        property int theme: 0
+    }
+    property alias appearanceTheme: appearanceSettings.theme
+    SystemPalette { id: systemPalette }
+    readonly property bool useDarkPalette: appearanceSettings.theme === 2 ||
+        (appearanceSettings.theme === 0 && systemPalette.window.hsvValue < 0.5)
+    Material.theme: appearanceSettings.theme === 1 ? Material.Light : (appearanceSettings.theme === 2 ? Material.Dark : Material.System)
+    Material.primary: useDarkPalette ? eclipseTheme.darkPrimary : eclipseTheme.lightPrimary
+    Material.accent: useDarkPalette ? eclipseTheme.darkPrimary : eclipseTheme.lightPrimary
+    Material.background: useDarkPalette ? eclipseTheme.darkBackground : eclipseTheme.lightBackground
+    Material.foreground: useDarkPalette ? eclipseTheme.darkOnBackground : eclipseTheme.lightOnBackground
+
     // This function runs prior to creation of the initial StackView item
     function doEarlyInit() {
-        // Override the background color to Material 2 colors for Qt 6.5+
-        // in order to improve contrast between GFE's placeholder box art
-        // and the background of the app grid.
-        if (SystemProperties.usesMaterial3Theme) {
-            Material.background = "#303030"
-        }
+        // Material surface colors are bound to the selected appearance above.
 
         SdlGamepadKeyNavigation.enable()
     }
