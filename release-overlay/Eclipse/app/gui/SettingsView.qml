@@ -956,6 +956,7 @@ Flickable {
                 }
                 GroupBox {
                     id: clientScalingGroupBox
+                    visible: Qt.platform.os !== "osx"
                     width: parent.width
                     padding: 12
                     title: "<font color=\"skyblue\">" + qsTr("Client upscaling (FSR)") + "</font>"
@@ -1105,7 +1106,7 @@ Flickable {
                 Label {
                     width: parent.width
                     wrapMode: Text.WordWrap
-                    text: qsTr("Force QUIC requires Syzygy started with -quic and never falls back. QUIC currently supports Linux clients; unavailable hosts use GameStream in Automatic mode.")
+                    text: qsTr("Force QUIC requires Syzygy started with -quic and never falls back. Linux and macOS clients are supported; the macOS app bundles its own QUIC runtime. Unavailable hosts use GameStream in Automatic mode.")
                 }
 
                 CheckBox {
