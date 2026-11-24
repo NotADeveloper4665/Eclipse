@@ -33,8 +33,10 @@ GameStream. Force QUIC never falls back; Automatic falls back on an unavailable
 transport but stops on authentication failure. Pair first using the Syzygy
 phrase or verified Tailscale flow. Enable the host listener with `-quic`.
 
-The initial SQ1 transport targets Fedora/Linux IPv4 desktop RPMs. Both machines
-need python3-aioquic >= 1.3.0. The host listens on UDP base port + 31 (48020 by
+The SQ1 transport supports Linux and macOS IPv4 desktop clients connecting to a
+compatible Syzygy host. Linux clients need python3-aioquic >= 1.3.0; the macOS
+app bundles a self-contained ARM64 Python/aioquic runtime. The host still needs
+python3-aioquic >= 1.3.0. The host listens on UDP base port + 31 (48020 by
 default), which must be reachable. Windows, Android and Flatpak dependency
 bundling are not included in this implementation.
 
