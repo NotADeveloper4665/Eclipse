@@ -35,13 +35,22 @@ app="$PWD/app/Eclipse.app"
 test -x "$app/Contents/MacOS/Eclipse"
 lipo "$app/Contents/MacOS/Eclipse" -verify_arch arm64
 
-# Bundle Qt/QML plugins and all native runtime libraries into Eclipse.app.
+# Bundle Qt/QML plugins and native runtime libraries into Eclipse.app.
 run_bounded 600 macdeployqt "$app" -qmldir="$source_root/app/gui" -always-overwrite
-# Keep SQLite for QML local storage; remove optional SQL drivers requiring
-# separate database installations.
 if [ -d "$app/Contents/PlugIns/sqldrivers" ]; then
   find "$app/Contents/PlugIns/sqldrivers" -type f -name '*.dylib' ! -name 'libqsqlite.dylib' -delete
 fi
+
+# macdeployqt does not always copy transitive Homebrew dependencies.
+# Brotli's decoder is pulled in by bundled FFmpeg/HTTP libraries; explicitly
+# include its common runtime library so @rpath references resolve offline.
+frameworks="$app/Contents/Frameworks"
+brotli_lib="$(brew --prefix brotli)/lib"
+for dylib in libbrotlicommon.1.dylib libbrotlicommon.dylib; do
+  if [ -f "$brotli_lib/$dylib" ]; then
+    cp -L "$brotli_lib/$dylib" "$frameworks/$dylib"
+  fi
+done
 run_bounded 120 python3 "$repo_root/scripts/fix-macos-library-paths.py" "$app"
 # These are packaging-integrity checks, not application test suites.
 run_bounded 300 python3 "$repo_root/scripts/verify-macos-bundle.py" "$app"
