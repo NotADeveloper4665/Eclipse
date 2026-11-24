@@ -8,6 +8,8 @@
 #include <future>
 #include <atomic>
 #include <QRandomGenerator>
+#include <QCoreApplication>
+#include <QDir>
 #include "backend/identitymanager.h"
 #include "backend/nvcomputer.h"
 
@@ -21,9 +23,9 @@ public:
     QString error;
     int failureCode = 3;
     bool start(NvComputer *host) {
-#ifndef Q_OS_LINUX
+#if !defined(Q_OS_LINUX) && !defined(Q_OS_MACOS)
         Q_UNUSED(host);
-        error = QStringLiteral("QUIC transport currently supports Linux clients only.");
+        error = QStringLiteral("QUIC transport currently supports Linux and macOS clients.");
         return false;
 #else
         if (!directory.isValid() || host->serverCert.isNull()) {
@@ -55,18 +57,31 @@ public:
         }
         local = QStringLiteral("127.90.%1.%2")
                 .arg(QRandomGenerator::global()->bounded(1, 251)).arg(QRandomGenerator::global()->bounded(1, 251));
-        const QStringList arguments{directory.filePath(QStringLiteral("transport.py")), QStringLiteral("client"),
-            QStringLiteral("--host"), host->activeAddress.address(), QStringLiteral("--port"), QString::number(base+31),
-            QStringLiteral("--base"), QString::number(base), QStringLiteral("--local"), local,
-            QStringLiteral("--cert"), directory.filePath(QStringLiteral("client.crt")),
-            QStringLiteral("--key"), directory.filePath(QStringLiteral("client.key")),
-            QStringLiteral("--pin"), QString::fromLatin1(host->serverCert.digest(QCryptographicHash::Sha256).toHex())};
+        QString program;
+        QStringList arguments;
+#ifdef Q_OS_MACOS
+        // The macOS app bundles a self-contained PyInstaller executable with
+        // aioquic/cryptography; the user does not need Homebrew or Python.
+        program = QDir(QCoreApplication::applicationDirPath()).absoluteFilePath(
+            QStringLiteral("../Resources/syzygy-quic"));
+#else
+        program = QStringLiteral("python3");
+        arguments << directory.filePath(QStringLiteral("transport.py"));
+#endif
+        arguments << QStringLiteral("client")
+            << QStringLiteral("--host") << host->activeAddress.address()
+            << QStringLiteral("--port") << QString::number(base+31)
+            << QStringLiteral("--base") << QString::number(base)
+            << QStringLiteral("--local") << local
+            << QStringLiteral("--cert") << directory.filePath(QStringLiteral("client.crt"))
+            << QStringLiteral("--key") << directory.filePath(QStringLiteral("client.key"))
+            << QStringLiteral("--pin") << QString::fromLatin1(host->serverCert.digest(QCryptographicHash::Sha256).toHex());
         std::promise<bool> readiness;
         auto ready = readiness.get_future();
         worker = std::thread([this, arguments, promise = std::move(readiness)]() mutable {
             // QProcess is created, polled and destroyed exclusively on this thread.
             QProcess process;
-            process.start(QStringLiteral("python3"), arguments);
+            process.start(program, arguments);
             if (!process.waitForStarted(2000)) {
                 error = QStringLiteral("Cannot start Python QUIC transport.");
                 promise.set_value(false);
