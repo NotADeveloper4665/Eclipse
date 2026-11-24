@@ -31,10 +31,15 @@ external nodes are excluded. Other connections use the six-word pairing phrase;
 old hexadecimal enrollment keys are retired by the updated host. Existing paired
 certificates continue to work. Spaces and hyphens are interchangeable in phrases.
 
-Automatic Tailscale enrollment currently requires a Linux Eclipse client with
-`/usr/bin/tailscale` and a root-owned `/run/tailscale/tailscaled.sock`. The client
-checks the host against its local daemon before trusting auto-enrollment. Other
-platforms can pair using the generated phrase.
+Automatic Tailscale enrollment supports Linux and macOS Eclipse clients. Linux
+uses the root-owned `/run/tailscale/tailscaled.sock` and trusted system CLI.
+macOS uses the CLI inside the verified, code-signed
+`/Applications/Tailscale.app` and asks its local daemon to verify the peer with
+`status --json` and `whois --json`. The client checks the exact literal Tailscale
+IP, tailnet membership, share status, machine authorization, and stable node
+identity before attempting automatic enrollment. If the official app or its
+signature check is unavailable, automatic enrollment is refused; phrase pairing
+remains available.
 
 For automatic enrollment, enter the host's literal Tailscale IP address.
 Hostnames use phrase pairing to avoid trusting a destination that can change
