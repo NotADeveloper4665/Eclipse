@@ -1087,6 +1087,7 @@ Flickable {
                     text: qsTr("Use paced, smaller packets and responsive video on compatible Syzygy hosts. Unsupported features retain normal streaming behavior. Applies to the next stream.")
                 }
                 CheckBox {
+                    visible: Qt.platform.os === "linux"
                     text: qsTr("Temporarily disable Wi-Fi power saving (Linux)")
                     enabled: StreamingPreferences.wanOptimization
                     checked: StreamingPreferences.wanWifiPower
