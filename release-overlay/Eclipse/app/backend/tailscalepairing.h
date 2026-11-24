@@ -5,6 +5,7 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QHostAddress>
+#include <QStandardPaths>
 
 namespace SyzygyPairing {
 inline bool localTailnetPeer(const QString& host)
@@ -17,39 +18,67 @@ inline bool localTailnetPeer(const QString& host)
     if (!socket.exists() || socket.isSymLink() || socket.ownerId() != 0 ||
         directory.ownerId() != 0 || (directory.permissions() & writable) ||
         !executable.isExecutable() || executable.ownerId() != 0 || (executable.permissions() & writable)) return false;
-    const auto query = [](QStringList arguments) {
-        QProcess process;
-        arguments.prepend("--socket=/run/tailscale/tailscaled.sock");
-        process.start("/usr/bin/tailscale", arguments);
-        if (!process.waitForFinished(2000)) { process.kill(); process.waitForFinished(); return QJsonObject(); }
-        if (process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0) return QJsonObject();
-        return QJsonDocument::fromJson(process.readAllStandardOutput()).object();
-    };
-    const auto status = query({"status", "--json"});
-    if (status.value("BackendState").toString() != "Running" || !status.value("TUN").toBool()) return false;
-    const auto suffix = "." + status.value("CurrentTailnet").toObject().value("MagicDNSSuffix").toString() + ".";
-    if (suffix.size() < 4) return false;
-    const auto peers = status.value("Peer").toObject();
-    // Bind the trust check to the exact literal endpoint used by HTTP/TLS.
-    // A separately resolved hostname could change between lookup and pairing.
-    const QHostAddress literal(host);
-    if (literal.isNull()) return false;
-    const QList<QHostAddress> addresses {literal};
-    for (const auto& address : addresses) {
-        for (auto it = peers.begin(); it != peers.end(); ++it) {
-            const auto peer = it.value().toObject();
-            if (!peer.value("TailscaleIPs").toArray().contains(address.toString())) continue;
-            const auto dns = peer.value("DNSName").toString();
-            if (!peer.value("InNetworkMap").toBool() || peer.value("Expired").toBool() ||
-                peer.value("ShareeNode").toBool() || peer.value("AltSharerUserID").toDouble() != 0 ||
-                !dns.endsWith(suffix)) return false;
-            const auto node = query({"whois", "--json", address.toString()}).value("Node").toObject();
-            return node.value("MachineAuthorized").toBool() && node.value("StableID").toString() == peer.value("ID").toString() &&
-                !node.value("StableID").toString().isEmpty() && node.value("Name").toString() == dns;
-        }
-    }
+    const QString program = QStringLiteral("/usr/bin/tailscale");
+    const QStringList socketArgs{QStringLiteral("--socket=/run/tailscale/tailscaled.sock")};
+#elif defined(Q_OS_MACOS)
+    // Use the official, signed Tailscale.app CLI. Its local API connection
+    // performs peer identity queries through the running macOS Tailscale daemon.
+    const QString app = QStringLiteral("/Applications/Tailscale.app");
+    const QString program = app + QStringLiteral("/Contents/MacOS/Tailscale");
+    if (!QFileInfo(program).isExecutable()) return false;
+    QProcess signature;
+    signature.start(QStringLiteral("/usr/bin/codesign"),
+                    {QStringLiteral("--verify"), QStringLiteral("--deep"),
+                     QStringLiteral("--strict"), app});
+    if (!signature.waitForFinished(3000) || signature.exitStatus() != QProcess::NormalExit ||
+        signature.exitCode() != 0) return false;
+    const QStringList socketArgs;
 #else
     Q_UNUSED(host);
+    return false;
+#endif
+#if defined(Q_OS_LINUX) || defined(Q_OS_MACOS)
+    const auto query = [&](QStringList arguments) {
+        QProcess process;
+        arguments = socketArgs + arguments;
+        process.start(program, arguments);
+        if (!process.waitForFinished(2500)) {
+            process.kill();
+            process.waitForFinished();
+            return QJsonObject();
+        }
+        if (process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0)
+            return QJsonObject();
+        return QJsonDocument::fromJson(process.readAllStandardOutput()).object();
+    };
+
+    const auto status = query({QStringLiteral("status"), QStringLiteral("--json")});
+    if (status.value(QStringLiteral("BackendState")).toString() != QStringLiteral("Running") ||
+        !status.value(QStringLiteral("TUN")).toBool()) return false;
+    const auto suffix = QStringLiteral(".") +
+        status.value(QStringLiteral("CurrentTailnet")).toObject()
+              .value(QStringLiteral("MagicDNSSuffix")).toString() + QStringLiteral(".");
+    if (suffix.size() < 4) return false;
+    const QHostAddress address(host);
+    if (address.isNull()) return false;
+    const auto peers = status.value(QStringLiteral("Peer")).toObject();
+    for (auto it = peers.begin(); it != peers.end(); ++it) {
+        const auto peer = it.value().toObject();
+        if (!peer.value(QStringLiteral("TailscaleIPs")).toArray()
+                 .contains(address.toString())) continue;
+        const auto dns = peer.value(QStringLiteral("DNSName")).toString();
+        if (!peer.value(QStringLiteral("InNetworkMap")).toBool() ||
+            peer.value(QStringLiteral("Expired")).toBool() ||
+            peer.value(QStringLiteral("ShareeNode")).toBool() ||
+            peer.value(QStringLiteral("AltSharerUserID")).toDouble() != 0 ||
+            !dns.endsWith(suffix)) return false;
+        const auto node = query({QStringLiteral("whois"), QStringLiteral("--json"),
+                                 address.toString()}).value(QStringLiteral("Node")).toObject();
+        return node.value(QStringLiteral("MachineAuthorized")).toBool() &&
+            node.value(QStringLiteral("StableID")).toString() == peer.value(QStringLiteral("ID")).toString() &&
+            !node.value(QStringLiteral("StableID")).toString().isEmpty() &&
+            node.value(QStringLiteral("Name")).toString() == dns;
+    }
 #endif
     return false;
 }
