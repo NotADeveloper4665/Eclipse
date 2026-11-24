@@ -1008,7 +1008,7 @@ Flickable {
                         Label {
                             width: parent.width
                             wrapMode: Text.WordWrap
-                            text: qsTr("For a Linux host, enter an SSH alias or user@host configured for key-based login. Microphone and camera forwarding use virtual devices on the host. USB/IP passes a physical device to the host, so it cannot be used on this device at the same time.")
+                            text: qsTr("For a Linux host, enter an SSH alias or user@host configured for key-based login. Linux and macOS clients can forward microphones and cameras to Linux virtual devices. USB/IP requires Linux on the client and host, and a shared physical device cannot be used locally.")
                         }
                         Button {
                             text: deviceForwardingGroup.expanded ? qsTr("Hide device forwarding") : qsTr("Configure device forwarding")
