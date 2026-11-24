@@ -78,7 +78,7 @@ public:
             << QStringLiteral("--pin") << QString::fromLatin1(host->serverCert.digest(QCryptographicHash::Sha256).toHex());
         std::promise<bool> readiness;
         auto ready = readiness.get_future();
-        worker = std::thread([this, arguments, promise = std::move(readiness)]() mutable {
+        worker = std::thread([this, program, arguments, promise = std::move(readiness)]() mutable {
             // QProcess is created, polled and destroyed exclusively on this thread.
             QProcess process;
             process.start(program, arguments);
