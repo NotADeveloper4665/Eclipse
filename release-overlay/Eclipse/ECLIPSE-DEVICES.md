@@ -15,13 +15,13 @@ Libplacebo hooks: https://libplacebo.org/custom-shaders/
 
 ## Host connection
 
-Settings → Microphone, webcam, and USB forwarding → Show forwarding controls. Enter an SSH config alias or `user@host`. These paths currently support Linux clients and Linux hosts, including a Tailscale address. They do not implement a Windows/Shadow receiver or change Sunshine's GameStream protocol.
+Settings → Microphone, webcam, and USB forwarding → Show forwarding controls. Enter an SSH config alias or `user@host`. Microphone and camera capture support Linux clients (PulseAudio/PipeWire and V4L2) and macOS clients (AVFoundation) connecting to Linux hosts, including over Tailscale. USB/IP remains Linux-client and Linux-host only because it depends on Linux kernel USB/IP drivers. They do not implement a Windows/Shadow receiver or change Sunshine's GameStream protocol.
 
 Use an SSH key and a previously verified host key. First connect using a terminal to establish and verify the host key. The UI uses BatchMode and strict host-key checking; it never asks for or saves an SSH password. Host forwarding is independent of the video session. Click Stop to end it. Forwarding sessions belong to the application, so navigating from Settings back to the PCs and starting a video stream keeps them connected. Exiting Eclipse stops them. It does not automatically capture or share devices when a stream starts.
 
 ## Microphone (including built-in microphones)
 
-Install FFmpeg with PulseAudio input/output and libopus on both machines; install `pactl` (Fedora: pulseaudio-utils) for source discovery and receiver setup. On the host, use the same account as the desktop audio session. PipeWire-Pulse or PulseAudio must already be running for that account and accessible from SSH.
+On Linux clients, install FFmpeg with PulseAudio input and libopus; install `pactl` (Fedora: pulseaudio-utils) for source discovery. On macOS clients, install FFmpeg with its AVFoundation input enabled; Eclipse enumerates and captures the selected audio device through AVFoundation. On the Linux host, install FFmpeg with PulseAudio output, libopus, and `pactl` for receiver setup. On the host, use the same account as the desktop audio session. PipeWire-Pulse or PulseAudio must already be running for that account and accessible from SSH.
 
 Choose Default microphone or a discovered source, then Start forwarding. Eclipse captures mono 48 kHz audio and encodes Opus at 64 kbit/s using 10 ms frames. It pipes this through SSH to a dynamically named host null sink plus remapped source. Select **Eclipse Microphone** in the host application. A stop or normal SSH exit removes only the virtual modules created by that share. Forced termination or an unreachable host may require manually unloading the remaining Eclipse modules with `pactl`.
 
@@ -29,7 +29,7 @@ This forwards audio; it does not take over the physical microphone. Source lists
 
 ## Webcam (including accessible built-in V4L2 cameras)
 
-The client enumerates readable V4L2 capture devices and excludes metadata-only nodes. FFmpeg captures 640×480 at 30 FPS and forwards MJPEG in Matroska over SSH. Devices that cannot capture that mode report the FFmpeg error. Native libcamera-only devices are not implemented.
+Linux clients enumerate readable V4L2 capture devices and exclude metadata-only nodes. macOS clients enumerate AVFoundation video devices and capture the selected camera with FFmpeg. FFmpeg captures 640×480 at 30 FPS and forwards MJPEG in Matroska over SSH. Devices that cannot capture that mode report the FFmpeg error. Native libcamera-only devices are not implemented.
 
 The Linux host needs FFmpeg and a writable v4l2loopback device. After installing the appropriate module for its kernel, an administrator can create it with:
 
@@ -47,7 +47,7 @@ PipeWire virtual source: https://docs.pipewire.org/page_pulse_module_remap_sourc
 
 This exports a device plugged into the Eclipse client to the host. The host imports it. The three selectors list USB audio devices, USB cameras, and all non-hub USB devices. USB audio may include output-only devices; interface class discovery cannot prove that a device contains a microphone. Composite devices appear in more than one list but can be exported only once. Each forwarding control can share one device, and distinct controls use different remote tunnel ports.
 
-Client prerequisites: `usbip`, `usbipd`, PolicyKit (`pkexec`), and OpenSSH client. An administrator loads the export driver and runs the daemon before sharing:
+Client prerequisites (Linux only): `usbip`, `usbipd`, PolicyKit (`pkexec`), and OpenSSH client. macOS does not expose the Linux USB/IP host driver and is not supported for USB/IP export. An administrator loads the export driver and runs the daemon before sharing:
 
 ```sh
 sudo modprobe usbip-host
