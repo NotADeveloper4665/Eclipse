@@ -8,13 +8,13 @@ PYTHON
 }
 
 # Native Apple Silicon release build. Requires Qt 6.8.3 and Homebrew
-# FFmpeg/SDL2/Opus/OpenSSL. Build/package only; no test suite is run here.
+# FFmpeg/SDL2-compat/SDL3/Opus/OpenSSL.
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$repo_root"
 test "$(uname -s)" = Darwin
 test "$(uname -m)" = arm64
 export MACOSX_DEPLOYMENT_TARGET=15.0
-export ECLIPSE_VERSION="${ECLIPSE_VERSION:-0.5.9}"
+export ECLIPSE_VERSION="${ECLIPSE_VERSION:-0.5.10}"
 export PKG_CONFIG_PATH="$(brew --prefix openssl@3)/lib/pkgconfig:$(brew --prefix ffmpeg)/lib/pkgconfig:$(brew --prefix)/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
 mkdir -p macos-work/source macos-work/build
 unzip -q -o Eclipse-source.zip -d macos-work/source
@@ -41,14 +41,24 @@ if [ -d "$app/Contents/PlugIns/sqldrivers" ]; then
   find "$app/Contents/PlugIns/sqldrivers" -type f -name '*.dylib' ! -name 'libqsqlite.dylib' -delete
 fi
 
-# macdeployqt does not always copy transitive Homebrew dependencies.
-# Brotli's decoder is pulled in by bundled FFmpeg/HTTP libraries; explicitly
-# include its common runtime library so @rpath references resolve offline.
 frameworks="$app/Contents/Frameworks"
+# Homebrew's sdl2 formula is sdl2-compat on this runner. That shim is SDL2
+# ABI-compatible but dynamically loads SDL3. macdeployqt does not reliably
+# discover this runtime edge, so bundle SDL3 explicitly as well as the shim.
+sdl3_lib="$(brew --prefix sdl3)/lib"
+compgen -G "$sdl3_lib/libSDL3*.dylib" >/dev/null
+for dylib in "$sdl3_lib"/libSDL3*.dylib; do
+  [ -f "$dylib" ] || continue
+  cp -Lf "$dylib" "$frameworks/$(basename "$dylib")"
+done
+# Ensure the app's executable rpath is available to transitive dependencies.
+install_name_tool -add_rpath '@executable_path/../Frameworks' "$app/Contents/MacOS/Eclipse" 2>/dev/null || true
+
+# FFmpeg/HTTP dependencies can also retain transitive Homebrew references.
 brotli_lib="$(brew --prefix brotli)/lib"
 for dylib in libbrotlicommon.1.dylib libbrotlicommon.dylib; do
   if [ -f "$brotli_lib/$dylib" ]; then
-    cp -L "$brotli_lib/$dylib" "$frameworks/$dylib"
+    cp -Lf "$brotli_lib/$dylib" "$frameworks/$dylib"
   fi
 done
 run_bounded 120 python3 "$repo_root/scripts/fix-macos-library-paths.py" "$app"
@@ -63,6 +73,5 @@ ln -s /Applications "$repo_root/macos-work/dmg/Applications"
 hdiutil create -volname "Eclipse $ECLIPSE_VERSION" -srcfolder "$repo_root/macos-work/dmg" \
   -ov -format UDZO "$repo_root/macos-work/deliverables/Eclipse-$ECLIPSE_VERSION-macOS-arm64.dmg"
 
-# Ship the exact overlaid source used for this binary alongside the installer.
 cd "$repo_root/macos-work/source"
 zip -qry "$repo_root/macos-work/deliverables/Eclipse-$ECLIPSE_VERSION-macOS-source.zip" Eclipse
