@@ -1,7 +1,7 @@
 name: Eclipse macOS ARM64 build
 on:
   pull_request:
-    paths: ['release-overlay/**', 'scripts/*macos*', 'docs/macos-arm64-preview.md', '.github/workflows/macos-test-release.yml']
+    paths: ['release-overlay/**', 'scripts/*macos*', 'docs/macos-arm64-preview.md', 'docs/macos-feature-roadmap.md', '.github/workflows/macos-test-release.yml']
   push:
     branches: [main]
     paths: ['release-overlay/**', 'scripts/*macos*', 'docs/macos-arm64-preview.md', '.github/workflows/macos-test-release.yml']
@@ -30,7 +30,7 @@ jobs:
         run: brew install pkg-config ffmpeg sdl2 sdl2_ttf sdl3 opus openssl@3 python@3.13
       - name: Build native Eclipse ARM64 application and DMG
         env:
-          ECLIPSE_VERSION: 0.6.0-dev
+          ECLIPSE_VERSION: 0.6.1-dev
         run: bash scripts/build-macos-test.sh
       - name: Record build provenance and checksums
         env:
@@ -40,7 +40,7 @@ jobs:
           import json, os, pathlib, subprocess
           root = pathlib.Path('macos-work/deliverables')
           (root/'build-info.json').write_text(json.dumps({
-            'version': '0.6.0-dev-macos-arm64-preview.1',
+            'version': '0.6.1-dev-macos-arm64-preview.1',
             'eclipse_commit': os.environ['GITHUB_SHA'],
             'artemis_reference': os.environ['ARTEMIS_COMMIT'],
             'architecture': 'arm64',
@@ -56,6 +56,6 @@ jobs:
           shasum -a 256 *.dmg *.zip *.json *.md > SHA256SUMS
       - uses: actions/upload-artifact@v4
         with:
-          name: Eclipse-macOS-arm64-0.6.0-dev
+          name: Eclipse-macOS-arm64-0.6.1-dev
           path: macos-work/deliverables/*
           if-no-files-found: error
