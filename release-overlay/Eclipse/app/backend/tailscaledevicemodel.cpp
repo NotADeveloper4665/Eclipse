@@ -6,6 +6,7 @@
 #include <QHostAddress>
 #include <QFileInfo>
 #include <QStandardPaths>
+#include <QProcessEnvironment>
 
 #include <algorithm>
 
@@ -107,9 +108,13 @@ void TailscaleDeviceModel::refresh()
 #endif
     );
 #ifdef Q_OS_MACOS
+    // The Standalone client installs this launcher; the App Store client keeps
+    // the CLI inside its application bundle.
+    if (program.isEmpty() && QFileInfo::isExecutable(QStringLiteral("/usr/local/bin/tailscale")))
+        program = QStringLiteral("/usr/local/bin/tailscale");
     if (program.isEmpty()) {
         const QString appCli = QStringLiteral("/Applications/Tailscale.app/Contents/MacOS/Tailscale");
-        if (QFileInfo::exists(appCli)) program = appCli;
+        if (QFileInfo::isExecutable(appCli)) program = appCli;
     }
 #endif
     if (program.isEmpty()) {
@@ -125,6 +130,12 @@ void TailscaleDeviceModel::refresh()
     setLoading(true);
     m_Process.setProgram(program);
     m_Process.setArguments({QStringLiteral("status"), QStringLiteral("--json")});
+#ifdef Q_OS_MACOS
+    // Tailscale.app's executable otherwise may decide it was launched as a GUI app.
+    auto environment = QProcessEnvironment::systemEnvironment();
+    environment.insert(QStringLiteral("TAILSCALE_BE_CLI"), QStringLiteral("1"));
+    m_Process.setProcessEnvironment(environment);
+#endif
     m_Process.start();
     m_Timeout.start();
 }
