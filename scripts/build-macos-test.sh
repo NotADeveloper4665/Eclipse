@@ -14,7 +14,7 @@ cd "$repo_root"
 test "$(uname -s)" = Darwin
 test "$(uname -m)" = arm64
 export MACOSX_DEPLOYMENT_TARGET=15.0
-export ECLIPSE_VERSION="${ECLIPSE_VERSION:-0.5.11}"
+export ECLIPSE_VERSION="${ECLIPSE_VERSION:-0.6.0-dev}"
 export PKG_CONFIG_PATH="$(brew --prefix openssl@3)/lib/pkgconfig:$(brew --prefix ffmpeg)/lib/pkgconfig:$(brew --prefix)/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
 mkdir -p macos-work/source macos-work/build
 unzip -q -o Eclipse-source.zip -d macos-work/source
@@ -72,7 +72,8 @@ done
 python="$(brew --prefix python@3.13)/bin/python3.13"
 venv="$repo_root/macos-work/quic-venv"
 "$python" -m venv "$venv"
-"$venv/bin/python" -m pip install --disable-pip-version-check --upgrade pip pyinstaller aioquic
+"$venv/bin/python" -m pip install --disable-pip-version-check --upgrade pip pyinstaller aioquic Pillow
+"$venv/bin/python" "$repo_root/scripts/generate-eclipse-icon.py" "$app/Contents/Resources/Eclipse.icns"
 mkdir -p "$app/Contents/Resources"
 "$venv/bin/pyinstaller" --clean --onefile --target-arch arm64 --name syzygy-quic \
   --distpath "$app/Contents/MacOS" \
