@@ -63,12 +63,16 @@ MediaPassthrough::MediaPassthrough(QObject* parent) : QObject(parent)
     connect(&m_Timeout, &QTimer::timeout, this, [this] { fail(tr("Forwarding timed out. Check SSH and the host's audio/camera setup.")); });
     connect(&m_Discovery, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, [this](int code, QProcess::ExitStatus) {
         m_Inputs.clear();
+        bool macPermissionDenied = false;
 #ifdef Q_OS_MACOS
         // FFmpeg's AVFoundation device listing is emitted on stderr and exits
         // non-zero because listing is requested without opening a capture input.
         const QString listing = QString::fromUtf8(m_Discovery.readAllStandardError());
         QString section;
-        const QRegularExpression deviceLine(QStringLiteral("^\\s*\\[(\\d+)\\]\\s+(.+)$"));
+        macPermissionDenied = listing.contains(QStringLiteral("not authorized"), Qt::CaseInsensitive) ||
+                              listing.contains(QStringLiteral("permission denied"), Qt::CaseInsensitive);
+        // FFmpeg prefixes AVFoundation device records with a logger tag.
+        const QRegularExpression deviceLine(QStringLiteral("^.*\\[(\\d+)\\]\\s+(.+)$"));
         for (const QString& line : listing.split('\n')) {
             if (line.contains(QStringLiteral("AVFoundation audio devices:"))) { section = QStringLiteral("audio"); continue; }
             if (line.contains(QStringLiteral("AVFoundation video devices:"))) { section = QStringLiteral("video"); continue; }
@@ -96,6 +100,10 @@ MediaPassthrough::MediaPassthrough(QObject* parent) : QObject(parent)
         }
 #endif
         emit inputsChanged();
+#ifdef Q_OS_MACOS
+        if (macPermissionDenied)
+            setStatus(tr("macOS denied camera or microphone access. Allow Eclipse under System Settings → Privacy & Security, then restart Eclipse."));
+#endif
     });
     connect(&m_Receiver, &QProcess::readyReadStandardError, this, [this] {
         const QByteArray bytes = m_Receiver.readAllStandardError();
@@ -188,7 +196,7 @@ void MediaPassthrough::refresh()
     }
     else if (m_Kind == "camera") {
 #ifdef Q_OS_MACOS
-        const QString ffmpeg = QStandardPaths::findExecutable("ffmpeg");
+        const QString ffmpeg = ffmpegProgram();
         if (!ffmpeg.isEmpty()) m_Discovery.start(ffmpeg, {"-hide_banner", "-f", "avfoundation", "-list_devices", "true", "-i", ""});
 #elif defined(Q_OS_LINUX)
         QDir root("/sys/class/video4linux");
