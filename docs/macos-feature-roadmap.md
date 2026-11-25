@@ -2,7 +2,7 @@
 
 **Target:** Eclipse 0.6.1-dev  
 **Scope:** Apple Silicon, macOS 15+, existing Moonlight/Syzygy protocol compatibility  
-**Status:** Implementation plan; features are not considered complete until a macOS build and device validation confirm them.
+**Status:** Plan created; P0 compatibility fixes have been applied to the macOS release overlay and are awaiting CI/build and hardware validation.
 
 ## 1. Immediate 0.6.0-dev defects
 
@@ -61,11 +61,11 @@ The following themes were found in recent r/MoonlightStreaming and r/macgaming d
 ## 3. Roadmap
 
 ### P0 — Make the current Mac release dependable
-1. QUIC local bind uses `127.0.0.1` on macOS; retain Linux path.
-2. Identify the invalid certificate source and provide a safe repair/re-pair path without silently rotating identities.
-3. Tailscale CLI discovery and CLI-mode environment; preserve strict peer identity checks.
-4. AVFoundation bundled FFmpeg enumeration and permission diagnostics.
-5. Build an actionable connection diagnostics panel that distinguishes discovery, pairing, certificate, socket-bind, QUIC handshake, media and permission failures.
+1. **Implemented:** QUIC local bind uses `127.0.0.1` on macOS; Linux keeps its existing address selection.
+2. **Partially implemented:** New client identities receive a positive, non-zero 159-bit X.509 serial. Existing persisted zero-serial identities are intentionally not rotated automatically because that changes the paired client identity; a deliberate re-pair/migration flow remains open.
+3. **Implemented:** Tailscale discovery now checks the standalone CLI path and App Store bundle path, sets `TAILSCALE_BE_CLI=1`, and automatic pairing uses CLI mode while retaining strict peer identity checks. The Linux-only TUN requirement is no longer applied to macOS.
+4. **Implemented:** AVFoundation camera discovery uses bundled FFmpeg, parser accepts FFmpeg's prefixed device lines, and permission-denied output is surfaced.
+5. **Open:** Build an actionable connection diagnostics panel that distinguishes discovery, pairing, certificate, socket-bind, QUIC handshake, media and permission failures.
 
 ### P1 — Mac reliability and input
 1. Frame pacing and CoreAudio diagnostics (decode, render, present and audio queue timing).
@@ -99,3 +99,15 @@ The following themes were found in recent r/MoonlightStreaming and r/macgaming d
 - AWDL / Apple Silicon micro-stutter reports: https://www.reddit.com/r/MoonlightStreaming/comments/1wg38ba/ and https://www.reddit.com/r/MoonlightStreaming/comments/1tzrf0u/
 - AWDL workaround automation discussion: https://www.reddit.com/r/MoonlightStreaming/comments/1w7hc59/
 - Native Mac client features (Game Mode, PiP, mic passthrough, adaptive triggers): https://www.reddit.com/r/MoonlightStreaming/comments/1wxuc2a/
+
+
+## 6. Implementation record (2026-11-24)
+
+Applied to `release/macos-arm64-0.5.9` as Eclipse 0.6.1-dev:
+- macOS QUIC client proxy now binds to `127.0.0.1`; Linux address selection is unchanged.
+- New Moonlight client certificates use positive, non-zero 159-bit serials. Existing saved serial-zero certificates remain unchanged to avoid silently invalidating saved host pairings; clearing/replacing that identity requires re-pairing.
+- Tailscale CLI selection includes `/usr/local/bin/tailscale` and the App Store app executable, with `TAILSCALE_BE_CLI=1` in child process environments.
+- macOS automatic pairing no longer depends on the Linux TUN boolean; peer network-map, DNS suffix, expiry/share status and `whois` StableID checks remain.
+- AVFoundation camera discovery now uses bundled FFmpeg, accepts prefixed FFmpeg device records, and reports recognizable permission denial.
+
+These changes are code changes, not verified runtime fixes yet. CI compilation and physical Mac testing are still required.
