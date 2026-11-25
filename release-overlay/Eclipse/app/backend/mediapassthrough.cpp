@@ -2,11 +2,13 @@
 #include "devicepassthrough.h"
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QRegularExpression>
 #include <QStandardPaths>
+#include <QCoreApplication>
 #ifdef Q_OS_LINUX
 #include <linux/videodev2.h>
 #include <sys/ioctl.h>
@@ -15,6 +17,14 @@
 #endif
 
 namespace {
+QString ffmpegProgram()
+{
+#ifdef Q_OS_MACOS
+    const QString bundled = QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("ffmpeg"));
+    if (QFileInfo(bundled).isExecutable()) return bundled;
+#endif
+    return QStandardPaths::findExecutable(QStringLiteral("ffmpeg"));
+}
 QString quote(QString text) { text.replace('\'', "'\\''"); return "'" + text + "'"; }
 const char microphoneReceiver[] = R"SH(
 set -eu
@@ -53,6 +63,31 @@ MediaPassthrough::MediaPassthrough(QObject* parent) : QObject(parent)
     connect(&m_Timeout, &QTimer::timeout, this, [this] { fail(tr("Forwarding timed out. Check SSH and the host's audio/camera setup.")); });
     connect(&m_Discovery, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, [this](int code, QProcess::ExitStatus) {
         m_Inputs.clear();
+        bool macPermissionDenied = false;
+#ifdef Q_OS_MACOS
+        // FFmpeg's AVFoundation device listing is emitted on stderr and exits
+        // non-zero because listing is requested without opening a capture input.
+        const QString listing = QString::fromUtf8(m_Discovery.readAllStandardError());
+        QString section;
+        macPermissionDenied = listing.contains(QStringLiteral("not authorized"), Qt::CaseInsensitive) ||
+                              listing.contains(QStringLiteral("permission denied"), Qt::CaseInsensitive);
+        // FFmpeg prefixes AVFoundation device records with a logger tag.
+        const QRegularExpression deviceLine(QStringLiteral("^.*\\[(\\d+)\\]\\s+(.+)$"));
+        for (const QString& line : listing.split('\n')) {
+            if (line.contains(QStringLiteral("AVFoundation audio devices:"))) { section = QStringLiteral("audio"); continue; }
+            if (line.contains(QStringLiteral("AVFoundation video devices:"))) { section = QStringLiteral("video"); continue; }
+            const auto match = deviceLine.match(line);
+            if (!match.hasMatch()) continue;
+            if ((m_Kind == QStringLiteral("microphone") && section != QStringLiteral("audio")) ||
+                (m_Kind == QStringLiteral("camera") && section != QStringLiteral("video"))) continue;
+            const QString index = match.captured(1);
+            const QString name = match.captured(2).trimmed();
+            const QString id = m_Kind == QStringLiteral("microphone")
+                    ? QStringLiteral(":") + index
+                    : index + QStringLiteral(":none");
+            m_Inputs.append(QVariantMap{{"label", name}, {"id", id}});
+        }
+#else
         m_Inputs.append(QVariantMap{{"label", tr("Default microphone")}, {"id", "default"}});
         if (code == 0) {
             const QJsonArray sources = QJsonDocument::fromJson(m_Discovery.readAllStandardOutput()).array();
@@ -63,7 +98,12 @@ MediaPassthrough::MediaPassthrough(QObject* parent) : QObject(parent)
                 m_Inputs.append(QVariantMap{{"label", object.value("description").toString(name)}, {"id", name}});
             }
         }
+#endif
         emit inputsChanged();
+#ifdef Q_OS_MACOS
+        if (macPermissionDenied)
+            setStatus(tr("macOS denied camera or microphone access. Allow Eclipse under System Settings → Privacy & Security, then restart Eclipse."));
+#endif
     });
     connect(&m_Receiver, &QProcess::readyReadStandardError, this, [this] {
         const QByteArray bytes = m_Receiver.readAllStandardError();
@@ -73,15 +113,26 @@ MediaPassthrough::MediaPassthrough(QObject* parent) : QObject(parent)
             m_Ready = true;
             QStringList args = {"-nostdin", "-hide_banner", "-loglevel", "warning"};
             if (m_Kind == "microphone") {
+#ifdef Q_OS_MACOS
+                args << "-f" << "avfoundation" << "-i" << m_Input << "-ac" << "1" << "-ar" << "48000"
+                     << "-c:a" << "libopus" << "-b:a" << "64k" << "-application" << "lowdelay"
+                     << "-frame_duration" << "10" << "-flush_packets" << "1" << "-page_duration" << "10000" << "-f" << "ogg" << "pipe:1";
+#else
                 args << "-f" << "pulse" << "-i" << m_Input << "-ac" << "1" << "-ar" << "48000"
                      << "-c:a" << "libopus" << "-b:a" << "64k" << "-application" << "lowdelay"
                      << "-frame_duration" << "10" << "-flush_packets" << "1" << "-page_duration" << "10000" << "-f" << "ogg" << "pipe:1";
+#endif
             }
             else {
+#ifdef Q_OS_MACOS
+                args << "-f" << "avfoundation" << "-framerate" << "30" << "-video_size" << "640x480" << "-i" << m_Input
+                     << "-an" << "-c:v" << "mjpeg" << "-q:v" << "5" << "-flush_packets" << "1" << "-f" << "matroska" << "-cluster_time_limit" << "1" << "pipe:1";
+#else
                 args << "-f" << "v4l2" << "-framerate" << "30" << "-video_size" << "640x480" << "-i" << m_Input
                      << "-an" << "-c:v" << "mjpeg" << "-q:v" << "5" << "-flush_packets" << "1" << "-f" << "matroska" << "-cluster_time_limit" << "1" << "pipe:1";
+#endif
             }
-            m_Capture.start("ffmpeg", args);
+            m_Capture.start(ffmpegProgram(), args);
         }
         if (m_ReceiverOutput.size() > 8192) m_ReceiverOutput = m_ReceiverOutput.right(4096);
     });
@@ -118,7 +169,7 @@ MediaPassthrough::~MediaPassthrough()
 
 bool MediaPassthrough::supported() const
 {
-#ifdef Q_OS_LINUX
+#if defined(Q_OS_LINUX) || defined(Q_OS_MACOS)
     return true;
 #else
     return false;
@@ -134,12 +185,20 @@ void MediaPassthrough::refresh()
     m_Inputs.clear();
     if (!supported()) { setStatus(tr("Native forwarding currently supports Linux clients and Linux hosts.")); emit inputsChanged(); return; }
     if (m_Kind == "microphone") {
+#ifdef Q_OS_MACOS
+        const QString ffmpeg = ffmpegProgram();
+        if (!ffmpeg.isEmpty()) m_Discovery.start(ffmpeg, {"-hide_banner", "-f", "avfoundation", "-list_devices", "true", "-i", ""});
+#else
         m_Inputs.append(QVariantMap{{"label", tr("Default microphone")}, {"id", "default"}});
         emit inputsChanged();
         if (!QStandardPaths::findExecutable("pactl").isEmpty()) m_Discovery.start("pactl", {"-f", "json", "list", "sources"});
+#endif
     }
     else if (m_Kind == "camera") {
-#ifdef Q_OS_LINUX
+#ifdef Q_OS_MACOS
+        const QString ffmpeg = ffmpegProgram();
+        if (!ffmpeg.isEmpty()) m_Discovery.start(ffmpeg, {"-hide_banner", "-f", "avfoundation", "-list_devices", "true", "-i", ""});
+#elif defined(Q_OS_LINUX)
         QDir root("/sys/class/video4linux");
         for (const QString& name : root.entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
             const QString path = "/dev/" + name;
@@ -153,8 +212,8 @@ void MediaPassthrough::refresh()
                 m_Inputs.append(QVariantMap{{"label", QString::fromLocal8Bit(reinterpret_cast<const char*>(caps.card)) + " (" + path + ")"}, {"id", path}});
             }
         }
-#endif
         emit inputsChanged();
+#endif
     }
     setStatus(m_Inputs.isEmpty() ? tr("No accessible capture device found.") : tr("Choose a device and click Start forwarding."));
 }
@@ -167,7 +226,7 @@ void MediaPassthrough::start(const QString& target, const QString& input, const 
     for (const QVariant& item : m_Inputs) present |= item.toMap().value("id").toString() == input;
     if (!present) { setStatus(tr("Refresh and choose an available capture device.")); return; }
     if (m_Kind == "camera" && !QRegularExpression("\\A/dev/video[0-9]+\\z").match(output).hasMatch()) { setStatus(tr("Host camera must be a /dev/video number backed by v4l2loopback.")); return; }
-    if (QStandardPaths::findExecutable("ffmpeg").isEmpty() || QStandardPaths::findExecutable("ssh").isEmpty()) { setStatus(tr("Install FFmpeg and OpenSSH client first.")); return; }
+    if (ffmpegProgram().isEmpty() || QStandardPaths::findExecutable("ssh").isEmpty()) { setStatus(tr("Install FFmpeg and OpenSSH client first.")); return; }
     m_Input = input; m_Ready = false; m_Stopping = false; m_Busy = true; m_Log.clear(); m_ReceiverOutput.clear();
     setStatus(tr("Connecting and preparing the host capture device..."));
     QString command = "sh -c " + quote(QString::fromLatin1(m_Kind == "microphone" ? microphoneReceiver : cameraReceiver)) + " eclipse-media";

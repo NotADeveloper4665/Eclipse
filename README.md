@@ -12,6 +12,10 @@ The settings layout now stacks columns in small windows, wraps forwarding button
 
 Start Syzygy on Linux and copy the six-word pairing phrase shown in the terminal (or retrieve it with `syzygy -psk`). Add the host by IP or local discovery in Eclipse, click its card, select **Syzygy pairing phrase**, and paste it. No host-side PIN entry or web UI approval is required. Anyone with the passkey can enroll with full permissions. Eclipse saves the paired certificate, rather than the passkey, for subsequent connections. The passkey stays the same across host restarts and can enroll multiple clients.
 
+## Eclipse 0.6.0-dev
+
+The macOS Apple Silicon development build is versioned independently as **0.6.0-dev**. It uses the Eclipse crescent icon artwork in `release-overlay/Eclipse/app/gui/icons/eclipse.svg`; the macOS build generates the native `Eclipse.icns` bundle icon from that source. The build targets macOS 15+ and Apple Silicon. It remains a preview until CI packaging and physical-device validation complete.
+
 ## Releases
 
 Download current development builds from the [Eclipse development release](https://github.com/NotADeveloper4665/Eclipse/releases/tag/dev): Fedora 44 x86_64 RPM, x86_64 Flatpak, and complete source. The release updates only after RPM, Flatpak, and source checks pass for the same main-branch commit. `SHA256SUMS` and `dev-build.json` record file integrity and build provenance.
@@ -31,10 +35,15 @@ external nodes are excluded. Other connections use the six-word pairing phrase;
 old hexadecimal enrollment keys are retired by the updated host. Existing paired
 certificates continue to work. Spaces and hyphens are interchangeable in phrases.
 
-Automatic Tailscale enrollment currently requires a Linux Eclipse client with
-`/usr/bin/tailscale` and a root-owned `/run/tailscale/tailscaled.sock`. The client
-checks the host against its local daemon before trusting auto-enrollment. Other
-platforms can pair using the generated phrase.
+Automatic Tailscale enrollment supports Linux and macOS Eclipse clients. Linux
+uses the root-owned `/run/tailscale/tailscaled.sock` and trusted system CLI.
+macOS uses the CLI inside the verified, code-signed
+`/Applications/Tailscale.app` and asks its local daemon to verify the peer with
+`status --json` and `whois --json`. The client checks the exact literal Tailscale
+IP, tailnet membership, share status, machine authorization, and stable node
+identity before attempting automatic enrollment. If the official app or its
+signature check is unavailable, automatic enrollment is refused; phrase pairing
+remains available.
 
 For automatic enrollment, enter the host's literal Tailscale IP address.
 Hostnames use phrase pairing to avoid trusting a destination that can change

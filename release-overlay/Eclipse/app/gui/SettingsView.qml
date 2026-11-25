@@ -956,6 +956,7 @@ Flickable {
                 }
                 GroupBox {
                     id: clientScalingGroupBox
+                    visible: Qt.platform.os !== "osx"
                     width: parent.width
                     padding: 12
                     title: "<font color=\"skyblue\">" + qsTr("Client upscaling (FSR)") + "</font>"
@@ -1008,7 +1009,7 @@ Flickable {
                         Label {
                             width: parent.width
                             wrapMode: Text.WordWrap
-                            text: qsTr("For a Linux host, enter an SSH alias or user@host configured for key-based login. Microphone and camera forwarding use virtual devices on the host. USB/IP passes a physical device to the host, so it cannot be used on this device at the same time.")
+                            text: qsTr("For a Linux host, enter an SSH alias or user@host configured for key-based login. Linux and macOS clients can forward microphones and cameras to Linux virtual devices. USB/IP requires Linux on the client and host, and a shared physical device cannot be used locally.")
                         }
                         Button {
                             text: deviceForwardingGroup.expanded ? qsTr("Hide device forwarding") : qsTr("Configure device forwarding")
@@ -1087,6 +1088,7 @@ Flickable {
                     text: qsTr("Use paced, smaller packets and responsive video on compatible Syzygy hosts. Unsupported features retain normal streaming behavior. Applies to the next stream.")
                 }
                 CheckBox {
+                    visible: Qt.platform.os === "linux"
                     text: qsTr("Temporarily disable Wi-Fi power saving (Linux)")
                     enabled: StreamingPreferences.wanOptimization
                     checked: StreamingPreferences.wanWifiPower
@@ -1104,7 +1106,7 @@ Flickable {
                 Label {
                     width: parent.width
                     wrapMode: Text.WordWrap
-                    text: qsTr("Force QUIC requires Syzygy started with -quic and never falls back. QUIC currently supports Linux clients; unavailable hosts use GameStream in Automatic mode.")
+                    text: qsTr("Force QUIC requires Syzygy started with -quic and never falls back. Linux and macOS clients are supported; the macOS app bundles its own QUIC runtime. Unavailable hosts use GameStream in Automatic mode.")
                 }
 
                 CheckBox {
