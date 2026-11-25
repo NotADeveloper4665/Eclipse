@@ -6,6 +6,7 @@
 #include <QJsonArray>
 #include <QHostAddress>
 #include <QStandardPaths>
+#include <QProcessEnvironment>
 
 namespace SyzygyPairing {
 inline bool localTailnetPeer(const QString& host)
@@ -41,6 +42,11 @@ inline bool localTailnetPeer(const QString& host)
     const auto query = [&](QStringList arguments) {
         QProcess process;
         arguments = socketArgs + arguments;
+#ifdef Q_OS_MACOS
+        auto environment = QProcessEnvironment::systemEnvironment();
+        environment.insert(QStringLiteral("TAILSCALE_BE_CLI"), QStringLiteral("1"));
+        process.setProcessEnvironment(environment);
+#endif
         process.start(program, arguments);
         if (!process.waitForFinished(2500)) {
             process.kill();
@@ -53,8 +59,14 @@ inline bool localTailnetPeer(const QString& host)
     };
 
     const auto status = query({QStringLiteral("status"), QStringLiteral("--json")});
-    if (status.value(QStringLiteral("BackendState")).toString() != QStringLiteral("Running") ||
-        !status.value(QStringLiteral("TUN")).toBool()) return false;
+    if (status.value(QStringLiteral("BackendState")).toString() != QStringLiteral("Running")) return false;
+#ifdef Q_OS_LINUX
+    // Linux's system-daemon integration requires the kernel TUN interface.
+    if (!status.value(QStringLiteral("TUN")).toBool()) return false;
+#endif
+    // macOS uses its managed Network Extension / packet-tunnel integration.
+    // Do not use the Linux TUN flag as a proxy for macOS peer trust; the
+    // whois StableID and network-map checks below remain mandatory.
     const auto suffix = QStringLiteral(".") +
         status.value(QStringLiteral("CurrentTailnet")).toObject()
               .value(QStringLiteral("MagicDNSSuffix")).toString() + QStringLiteral(".");
