@@ -14,7 +14,7 @@ cd "$repo_root"
 test "$(uname -s)" = Darwin
 test "$(uname -m)" = arm64
 export MACOSX_DEPLOYMENT_TARGET=15.0
-export ECLIPSE_VERSION="${ECLIPSE_VERSION:-0.6.0-dev}"
+export ECLIPSE_VERSION="${ECLIPSE_VERSION:-0.6.1-dev}"
 export PKG_CONFIG_PATH="$(brew --prefix openssl@3)/lib/pkgconfig:$(brew --prefix ffmpeg)/lib/pkgconfig:$(brew --prefix)/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
 mkdir -p macos-work/source macos-work/build
 unzip -q -o Eclipse-source.zip -d macos-work/source
