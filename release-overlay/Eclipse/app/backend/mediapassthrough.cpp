@@ -7,6 +7,7 @@
 #include <QJsonObject>
 #include <QRegularExpression>
 #include <QStandardPaths>
+#include <QCoreApplication>
 #ifdef Q_OS_LINUX
 #include <linux/videodev2.h>
 #include <sys/ioctl.h>
@@ -15,6 +16,14 @@
 #endif
 
 namespace {
+QString ffmpegProgram()
+{
+#ifdef Q_OS_MACOS
+    const QString bundled = QDir(QCoreApplication::applicationDirPath()).filePath(QStringLiteral("ffmpeg"));
+    if (QFileInfo(bundled).isExecutable()) return bundled;
+#endif
+    return QStandardPaths::findExecutable(QStringLiteral("ffmpeg"));
+}
 QString quote(QString text) { text.replace('\'', "'\\''"); return "'" + text + "'"; }
 const char microphoneReceiver[] = R"SH(
 set -eu
@@ -114,7 +123,7 @@ MediaPassthrough::MediaPassthrough(QObject* parent) : QObject(parent)
                      << "-an" << "-c:v" << "mjpeg" << "-q:v" << "5" << "-flush_packets" << "1" << "-f" << "matroska" << "-cluster_time_limit" << "1" << "pipe:1";
 #endif
             }
-            m_Capture.start("ffmpeg", args);
+            m_Capture.start(ffmpegProgram(), args);
         }
         if (m_ReceiverOutput.size() > 8192) m_ReceiverOutput = m_ReceiverOutput.right(4096);
     });
@@ -168,7 +177,7 @@ void MediaPassthrough::refresh()
     if (!supported()) { setStatus(tr("Native forwarding currently supports Linux clients and Linux hosts.")); emit inputsChanged(); return; }
     if (m_Kind == "microphone") {
 #ifdef Q_OS_MACOS
-        const QString ffmpeg = QStandardPaths::findExecutable("ffmpeg");
+        const QString ffmpeg = ffmpegProgram();
         if (!ffmpeg.isEmpty()) m_Discovery.start(ffmpeg, {"-hide_banner", "-f", "avfoundation", "-list_devices", "true", "-i", ""});
 #else
         m_Inputs.append(QVariantMap{{"label", tr("Default microphone")}, {"id", "default"}});
@@ -208,7 +217,7 @@ void MediaPassthrough::start(const QString& target, const QString& input, const 
     for (const QVariant& item : m_Inputs) present |= item.toMap().value("id").toString() == input;
     if (!present) { setStatus(tr("Refresh and choose an available capture device.")); return; }
     if (m_Kind == "camera" && !QRegularExpression("\\A/dev/video[0-9]+\\z").match(output).hasMatch()) { setStatus(tr("Host camera must be a /dev/video number backed by v4l2loopback.")); return; }
-    if (QStandardPaths::findExecutable("ffmpeg").isEmpty() || QStandardPaths::findExecutable("ssh").isEmpty()) { setStatus(tr("Install FFmpeg and OpenSSH client first.")); return; }
+    if (ffmpegProgram().isEmpty() || QStandardPaths::findExecutable("ssh").isEmpty()) { setStatus(tr("Install FFmpeg and OpenSSH client first.")); return; }
     m_Input = input; m_Ready = false; m_Stopping = false; m_Busy = true; m_Log.clear(); m_ReceiverOutput.clear();
     setStatus(tr("Connecting and preparing the host capture device..."));
     QString command = "sh -c " + quote(QString::fromLatin1(m_Kind == "microphone" ? microphoneReceiver : cameraReceiver)) + " eclipse-media";
