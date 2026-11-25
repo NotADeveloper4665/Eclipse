@@ -75,7 +75,7 @@ venv="$repo_root/macos-work/quic-venv"
 "$venv/bin/python" -m pip install --disable-pip-version-check --upgrade pip pyinstaller aioquic
 mkdir -p "$app/Contents/Resources"
 "$venv/bin/pyinstaller" --clean --onefile --target-arch arm64 --name syzygy-quic \
-  --distpath "$app/Contents/Resources" \
+  --distpath "$app/Contents/MacOS" \
   --workpath "$repo_root/macos-work/pyinstaller-work" \
   --specpath "$repo_root/macos-work/pyinstaller-spec" \
   "$source_root/app/streaming/quic/syzygy-quic.py"
