@@ -36,7 +36,8 @@ test -x "$app/Contents/MacOS/Eclipse"
 lipo "$app/Contents/MacOS/Eclipse" -verify_arch arm64
 
 # Bundle Qt/QML plugins and native runtime libraries into Eclipse.app.
-run_bounded 600 macdeployqt "$app" -qmldir="$source_root/app/gui" -always-overwrite
+run_bounded 600 macdeployqt "$app" -qmldir="$source_root/app/gui" \
+  -executable="$(brew --prefix ffmpeg)/bin/ffmpeg" -always-overwrite
 if [ -d "$app/Contents/PlugIns/sqldrivers" ]; then
   find "$app/Contents/PlugIns/sqldrivers" -type f -name '*.dylib' ! -name 'libqsqlite.dylib' -delete
 fi
