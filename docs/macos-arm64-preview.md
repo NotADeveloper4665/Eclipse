@@ -1,8 +1,8 @@
-# Eclipse 0.5.11 — macOS Apple Silicon Preview
+# Eclipse 0.6.0-dev — macOS Apple Silicon Preview
 
 Native arm64 build for M1/M2/M3/M4 Macs running macOS 15 or newer. This is a separate macOS preview; Fedora RPM and Flatpak release tracks are unchanged.
 
-## Cross-platform features
+## Application icon\n\nThe app icon is generated from `release-overlay/Eclipse/app/gui/icons/eclipse.svg`, preserving the submitted 512×512 purple rounded-square and lavender crescent design. The macOS build creates `Eclipse.icns`; the same artwork is exported as a 512×512 PNG for Linux packaging.\n\n## Cross-platform features
 
 - Tailscale peer discovery from the PC list when the official Tailscale app is installed and signed in.
 - Verified Syzygy automatic Tailscale pairing through the signed Tailscale.app CLI and local daemon identity query. If verification cannot be completed, use the six-word pairing phrase.
