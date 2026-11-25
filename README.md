@@ -12,6 +12,10 @@ The settings layout now stacks columns in small windows, wraps forwarding button
 
 Start Syzygy on Linux and copy the six-word pairing phrase shown in the terminal (or retrieve it with `syzygy -psk`). Add the host by IP or local discovery in Eclipse, click its card, select **Syzygy pairing phrase**, and paste it. No host-side PIN entry or web UI approval is required. Anyone with the passkey can enroll with full permissions. Eclipse saves the paired certificate, rather than the passkey, for subsequent connections. The passkey stays the same across host restarts and can enroll multiple clients.
 
+## Eclipse 0.6.0-dev
+
+The macOS Apple Silicon development build is versioned independently as **0.6.0-dev**. It uses the Eclipse crescent icon artwork in `release-overlay/Eclipse/app/gui/icons/eclipse.svg`; the macOS build generates the native `Eclipse.icns` bundle icon from that source. The build targets macOS 15+ and Apple Silicon. It remains a preview until CI packaging and physical-device validation complete.
+
 ## Releases
 
 Download current development builds from the [Eclipse development release](https://github.com/NotADeveloper4665/Eclipse/releases/tag/dev): Fedora 44 x86_64 RPM, x86_64 Flatpak, and complete source. The release updates only after RPM, Flatpak, and source checks pass for the same main-branch commit. `SHA256SUMS` and `dev-build.json` record file integrity and build provenance.
