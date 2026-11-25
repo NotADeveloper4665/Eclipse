@@ -55,8 +55,14 @@ public:
             error = QStringLiteral("Cannot create private QUIC session credentials.");
             return false;
         }
+#ifdef Q_OS_MACOS
+        // macOS only guarantees the configured loopback address. Random 127/8
+        // aliases are not necessarily assigned and bind() fails with EADDRNOTAVAIL.
+        local = QStringLiteral("127.0.0.1");
+#else
         local = QStringLiteral("127.90.%1.%2")
                 .arg(QRandomGenerator::global()->bounded(1, 251)).arg(QRandomGenerator::global()->bounded(1, 251));
+#endif
         QString program;
         QStringList arguments;
 #ifdef Q_OS_MACOS
