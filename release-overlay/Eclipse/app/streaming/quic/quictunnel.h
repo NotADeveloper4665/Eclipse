@@ -63,7 +63,7 @@ public:
         // The macOS app bundles a self-contained PyInstaller executable with
         // aioquic/cryptography; the user does not need Homebrew or Python.
         program = QDir(QCoreApplication::applicationDirPath()).absoluteFilePath(
-            QStringLiteral("../Resources/syzygy-quic"));
+            QStringLiteral("syzygy-quic"));
 #else
         program = QStringLiteral("python3");
         arguments << directory.filePath(QStringLiteral("transport.py"));
