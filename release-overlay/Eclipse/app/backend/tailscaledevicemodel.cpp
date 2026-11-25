@@ -110,11 +110,11 @@ void TailscaleDeviceModel::refresh()
 #ifdef Q_OS_MACOS
     // The Standalone client installs this launcher; the App Store client keeps
     // the CLI inside its application bundle.
-    if (program.isEmpty() && QFileInfo::isExecutable(QStringLiteral("/usr/local/bin/tailscale")))
+    if (program.isEmpty() && QFileInfo(QStringLiteral("/usr/local/bin/tailscale")).isExecutable())
         program = QStringLiteral("/usr/local/bin/tailscale");
     if (program.isEmpty()) {
         const QString appCli = QStringLiteral("/Applications/Tailscale.app/Contents/MacOS/Tailscale");
-        if (QFileInfo::isExecutable(appCli)) program = appCli;
+        if (QFileInfo(appCli).isExecutable()) program = appCli;
     }
 #endif
     if (program.isEmpty()) {
